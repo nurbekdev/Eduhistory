@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { FileText, Loader2, Upload, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,12 @@ type CourseDetail = {
       durationMinutes: number;
       order: number;
       isPublished: boolean;
+      materials: Array<{
+        id: string;
+        fileName: string;
+        fileUrl: string;
+        mimeType: string;
+      }>;
       quiz: {
         id: string;
         title: string;
@@ -96,7 +103,7 @@ type LessonDraft = {
 const emptyLessonDraft: LessonDraft = {
   title: "",
   description: "",
-  youtubeUrl: "https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ",
+  youtubeUrl: "",
   content: "",
   durationMinutes: 15,
 };
@@ -112,7 +119,18 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
   const [newModuleTitle, setNewModuleTitle] = useState("");
   const [newModuleDescription, setNewModuleDescription] = useState("");
   const [lessonDrafts, setLessonDrafts] = useState<Record<string, LessonDraft>>({});
+  const [draftPdfFiles, setDraftPdfFiles] = useState<Record<string, File[]>>({});
   const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>([]);
+  const [fetchingDurationFor, setFetchingDurationFor] = useState<string | null>(null);
+
+  const fetchYoutubeDuration = async (url: string): Promise<number | null> => {
+    if (!url?.trim()) return null;
+    const res = await fetch(`/api/youtube/duration?url=${encodeURIComponent(url.trim())}`);
+    const data = (await res.json()) as { durationMinutes?: number | null; error?: string };
+    if (data.durationMinutes != null && data.durationMinutes >= 0) return data.durationMinutes;
+    if (data.error) toast.error(data.error);
+    return null;
+  };
 
   const query = useQuery({
     queryKey: ["course-builder", courseId],
@@ -235,8 +253,29 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
       toast.error(body.message ?? "Dars qo'shishda xatolik yuz berdi.");
       return;
     }
-    toast.success("Dars va default test yaratildi.");
+    const lesson = (await response.json()) as { id: string };
+    const pendingPdfs = draftPdfFiles[moduleId] ?? [];
+    for (const file of pendingPdfs) {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("folder", "lesson-materials");
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!uploadRes.ok) continue;
+      const uploaded = (await uploadRes.json()) as { fileUrl: string };
+      await fetch(`/api/lessons/${lesson.id}/materials`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileUrl: uploaded.fileUrl,
+          fileName: file.name,
+          mimeType: file.type,
+          sizeBytes: file.size,
+        }),
+      });
+    }
+    setDraftPdfFiles((prev) => ({ ...prev, [moduleId]: [] }));
     setLessonDrafts((prev) => ({ ...prev, [moduleId]: { ...emptyLessonDraft } }));
+    toast.success("Dars va default test yaratildi.");
     await refresh();
   };
 
@@ -253,10 +292,20 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
       videoFileUrl: string | null;
     },
   ) => {
+    const body = {
+      title: payload.title.trim(),
+      description: payload.description.trim(),
+      content: payload.content ?? undefined,
+      youtubeUrl: payload.youtubeUrl ?? "",
+      durationMinutes: Number(payload.durationMinutes) || 0,
+      isPublished: Boolean(payload.isPublished),
+      order: Number(payload.order) || 1,
+      videoFileUrl: payload.videoFileUrl && payload.videoFileUrl !== "" ? payload.videoFileUrl : "",
+    };
     const response = await fetch(`/api/lessons/${lessonId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     });
     if (!response.ok) {
       const body = (await response.json()) as { message?: string };
@@ -338,16 +387,48 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
               }
             />
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Cover image URL</label>
-            <Input
-              value={course.coverImageUrl ?? ""}
-              onChange={(event) =>
-                queryClient.setQueryData<CourseDetail>(["course-builder", courseId], (prev) =>
-                  prev ? { ...prev, coverImageUrl: event.target.value } : prev,
-                )
-              }
-            />
+          <div className="space-y-1 md:col-span-2">
+            <label className="text-sm font-medium">Cover rasm (URL yoki yuklash)</label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                placeholder="https://... yoki /uploads/..."
+                className="min-w-[200px] flex-1"
+                value={course.coverImageUrl ?? ""}
+                onChange={(event) =>
+                  queryClient.setQueryData<CourseDetail>(["course-builder", courseId], (prev) =>
+                    prev ? { ...prev, coverImageUrl: event.target.value } : prev,
+                  )
+                }
+              />
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50">
+                <Upload className="size-4" />
+                Fayl yuklash
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !course) return;
+                    const formData = new FormData();
+                    formData.set("file", file);
+                    formData.set("folder", "covers");
+                    const res = await fetch("/api/upload", { method: "POST", body: formData });
+                    if (!res.ok) {
+                      const body = (await res.json()) as { message?: string };
+                      toast.error(body.message ?? "Yuklashda xatolik.");
+                      return;
+                    }
+                    const data = (await res.json()) as { fileUrl: string };
+                    queryClient.setQueryData<CourseDetail>(["course-builder", courseId], (prev) =>
+                      prev ? { ...prev, coverImageUrl: data.fileUrl } : prev,
+                    );
+                    toast.success("Cover yuklandi.");
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Davomiylik (daq.)</label>
@@ -538,27 +619,109 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
                       onChange={(event) => setDraftForModule(moduleItem.id, { title: event.target.value })}
                     />
                     <Input
-                      placeholder="YouTube embed link"
+                      placeholder="YouTube link (ixtiyoriy, bo'sh qoldirish mumkin)"
                       value={draftForModule(moduleItem.id).youtubeUrl}
                       onChange={(event) => setDraftForModule(moduleItem.id, { youtubeUrl: event.target.value })}
+                      onBlur={async () => {
+                        const url = draftForModule(moduleItem.id).youtubeUrl;
+                        if (!url?.trim()) return;
+                        const key = `draft-${moduleItem.id}`;
+                        setFetchingDurationFor(key);
+                        const min = await fetchYoutubeDuration(url);
+                        setFetchingDurationFor(null);
+                        if (min != null) {
+                          setDraftForModule(moduleItem.id, { durationMinutes: min });
+                          toast.success(`Davomiylik: ${min} daqiqa`);
+                        }
+                      }}
                     />
                     <Input
                       placeholder="Qisqa tavsif"
                       value={draftForModule(moduleItem.id).description}
                       onChange={(event) => setDraftForModule(moduleItem.id, { description: event.target.value })}
                     />
-                    <Input
-                      type="number"
-                      placeholder="Davomiylik"
-                      value={draftForModule(moduleItem.id).durationMinutes}
-                      onChange={(event) => setDraftForModule(moduleItem.id, { durationMinutes: Number(event.target.value) })}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="Davomiylik (daq)"
+                        className="w-24"
+                        value={draftForModule(moduleItem.id).durationMinutes}
+                        onChange={(event) =>
+                          setDraftForModule(moduleItem.id, { durationMinutes: Number(event.target.value) || 0 })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!draftForModule(moduleItem.id).youtubeUrl?.trim() || fetchingDurationFor === `draft-${moduleItem.id}`}
+                        onClick={async () => {
+                          const url = draftForModule(moduleItem.id).youtubeUrl;
+                          if (!url?.trim()) return;
+                          const key = `draft-${moduleItem.id}`;
+                          setFetchingDurationFor(key);
+                          const min = await fetchYoutubeDuration(url);
+                          setFetchingDurationFor(null);
+                          if (min != null) {
+                            setDraftForModule(moduleItem.id, { durationMinutes: min });
+                            toast.success(`Davomiylik: ${min} daqiqa`);
+                          }
+                        }}
+                      >
+                        {fetchingDurationFor === `draft-${moduleItem.id}` ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          "Videodan olish"
+                        )}
+                      </Button>
+                    </div>
                     <div className="md:col-span-2">
                       <Textarea
-                        placeholder="Dars contenti (minimal rich text o'rniga)"
+                        placeholder="Dars matni (qisqa tavsif, qo'llanma va h.k.)"
                         value={draftForModule(moduleItem.id).content}
                         onChange={(event) => setDraftForModule(moduleItem.id, { content: event.target.value })}
                       />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <p className="text-sm font-medium">PDF / materiallar (ixtiyoriy)</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100">
+                          <FileText className="size-4" />
+                          PDF qo'shish
+                          <input
+                            type="file"
+                            accept="application/pdf,.pdf"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files ?? []);
+                              if (!files.length) return;
+                              setDraftPdfFiles((prev) => ({
+                                ...prev,
+                                [moduleItem.id]: [...(prev[moduleItem.id] ?? []), ...files],
+                              }));
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                        {(draftPdfFiles[moduleItem.id] ?? []).map((f, i) => (
+                          <Badge key={i} variant="warning" className="gap-1">
+                            {f.name}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDraftPdfFiles((prev) => ({
+                                  ...prev,
+                                  [moduleItem.id]: (prev[moduleItem.id] ?? []).filter((_, j) => j !== i),
+                                }))
+                              }
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                     <div className="md:col-span-2">
                       <Button onClick={() => createLesson(moduleItem.id)}>Dars qo'shish</Button>
@@ -629,6 +792,35 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
                                   : prev,
                               )
                             }
+                            onBlur={async () => {
+                              if (!lesson.youtubeUrl?.trim()) return;
+                              const key = `lesson-${lesson.id}`;
+                              setFetchingDurationFor(key);
+                              const min = await fetchYoutubeDuration(lesson.youtubeUrl);
+                              setFetchingDurationFor(null);
+                              if (min != null) {
+                                queryClient.setQueryData<CourseDetail>(["course-builder", courseId], (prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        modules: prev.modules.map((moduleMap) =>
+                                          moduleMap.id === moduleItem.id
+                                            ? {
+                                                ...moduleMap,
+                                                lessons: moduleMap.lessons.map((lessonMap) =>
+                                                  lessonMap.id === lesson.id
+                                                    ? { ...lessonMap, durationMinutes: min }
+                                                    : lessonMap,
+                                                ),
+                                              }
+                                            : moduleMap,
+                                        ),
+                                      }
+                                    : prev,
+                                );
+                                toast.success(`Davomiylik: ${min} daqiqa`);
+                              }
+                            }}
                           />
                           <Input
                             value={lesson.description}
@@ -654,31 +846,79 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
                               )
                             }
                           />
-                          <Input
-                            type="number"
-                            value={lesson.durationMinutes}
-                            onChange={(event) =>
-                              queryClient.setQueryData<CourseDetail>(["course-builder", courseId], (prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      modules: prev.modules.map((moduleMap) =>
-                                        moduleMap.id === moduleItem.id
-                                          ? {
-                                              ...moduleMap,
-                                              lessons: moduleMap.lessons.map((lessonMap) =>
-                                                lessonMap.id === lesson.id
-                                                  ? { ...lessonMap, durationMinutes: Number(event.target.value) }
-                                                  : lessonMap,
-                                              ),
-                                            }
-                                          : moduleMap,
-                                      ),
-                                    }
-                                  : prev,
-                              )
-                            }
-                          />
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              min={0}
+                              className="w-24"
+                              value={lesson.durationMinutes}
+                              onChange={(event) =>
+                                queryClient.setQueryData<CourseDetail>(["course-builder", courseId], (prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        modules: prev.modules.map((moduleMap) =>
+                                          moduleMap.id === moduleItem.id
+                                            ? {
+                                                ...moduleMap,
+                                                lessons: moduleMap.lessons.map((lessonMap) =>
+                                                  lessonMap.id === lesson.id
+                                                    ? {
+                                                        ...lessonMap,
+                                                        durationMinutes: Number(event.target.value) || 0,
+                                                      }
+                                                    : lessonMap,
+                                                ),
+                                              }
+                                            : moduleMap,
+                                        ),
+                                      }
+                                    : prev,
+                                )
+                              }
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={!lesson.youtubeUrl?.trim() || fetchingDurationFor === `lesson-${lesson.id}`}
+                              onClick={async () => {
+                                if (!lesson.youtubeUrl?.trim()) return;
+                                const key = `lesson-${lesson.id}`;
+                                setFetchingDurationFor(key);
+                                const min = await fetchYoutubeDuration(lesson.youtubeUrl);
+                                setFetchingDurationFor(null);
+                                if (min != null) {
+                                  queryClient.setQueryData<CourseDetail>(["course-builder", courseId], (prev) =>
+                                    prev
+                                      ? {
+                                          ...prev,
+                                          modules: prev.modules.map((moduleMap) =>
+                                            moduleMap.id === moduleItem.id
+                                              ? {
+                                                  ...moduleMap,
+                                                  lessons: moduleMap.lessons.map((lessonMap) =>
+                                                    lessonMap.id === lesson.id
+                                                      ? { ...lessonMap, durationMinutes: min }
+                                                      : lessonMap,
+                                                  ),
+                                                }
+                                              : moduleMap,
+                                          ),
+                                        }
+                                      : prev,
+                                  );
+                                  toast.success(`Davomiylik: ${min} daqiqa`);
+                                }
+                              }}
+                            >
+                              {fetchingDurationFor === `lesson-${lesson.id}` ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                "Videodan olish"
+                              )}
+                            </Button>
+                          </div>
                           <div className="md:col-span-2">
                             <Textarea
                               value={lesson.content ?? ""}
@@ -753,6 +993,70 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
                           >
                             Darsni saqlash
                           </Button>
+
+                          <div className="mt-3 space-y-2 border-t pt-3 md:col-span-2">
+                            <p className="text-sm font-medium">Materiallar (PDF va b.)</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {(lesson.materials ?? []).map((mat) => (
+                                <Badge key={mat.id} variant="default" className="gap-1 pr-1">
+                                  <FileText className="size-3.5" />
+                                  {mat.fileName}
+                                  <button
+                                    type="button"
+                                    className="rounded hover:bg-white/20"
+                                    onClick={async () => {
+                                      if (!window.confirm(`"${mat.fileName}" ni o'chirishni xohlaysizmi?`)) return;
+                                      const res = await fetch(
+                                        `/api/lessons/${lesson.id}/materials/${mat.id}`,
+                                        { method: "DELETE" },
+                                      );
+                                      if (res.ok) await refresh();
+                                      else toast.error("Material o'chirishda xatolik.");
+                                    }}
+                                  >
+                                    <X className="size-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-2 py-1.5 text-xs text-slate-700 transition hover:bg-slate-100">
+                                <Upload className="size-3.5" />
+                                PDF qo'shish
+                                <input
+                                  type="file"
+                                  accept="application/pdf,.pdf"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    const formData = new FormData();
+                                    formData.set("file", file);
+                                    formData.set("folder", "lesson-materials");
+                                    const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+                                    if (!uploadRes.ok) {
+                                      toast.error("Yuklashda xatolik.");
+                                      return;
+                                    }
+                                    const uploaded = (await uploadRes.json()) as { fileUrl: string };
+                                    const matRes = await fetch(`/api/lessons/${lesson.id}/materials`, {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({
+                                        fileUrl: uploaded.fileUrl,
+                                        fileName: file.name,
+                                        mimeType: file.type,
+                                        sizeBytes: file.size,
+                                      }),
+                                    });
+                                    if (matRes.ok) {
+                                      toast.success("Material qo'shildi.");
+                                      await refresh();
+                                    }
+                                    e.target.value = "";
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          </div>
                         </div>
 
                         <LessonQuizBuilder

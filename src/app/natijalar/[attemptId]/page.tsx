@@ -70,12 +70,33 @@ export default async function ResultPage({ params }: ResultPageProps) {
   const passed = attempt.status === AttemptStatus.PASSED;
   const answerMap = new Map(attempt.answers.map((answer) => [answer.questionId, answer]));
 
+  const courseId = attempt.quiz.course.id;
+
   return (
     <PageContainer className="space-y-6">
       <SectionTitle
         title="Quiz natijasi"
         description={`${attempt.quiz.course.title} kursi • ${attempt.quiz.isFinal ? "Yakuniy test" : "Dars testi"}`}
       />
+
+      <Card className="border-emerald-200 bg-emerald-50/50">
+        <CardContent className="flex flex-wrap items-center gap-3 pt-6">
+          <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+            <Link href={`/player/${courseId}`}>Kursga qaytish</Link>
+          </Button>
+          {!passed && (
+            <Button asChild variant="outline">
+              <Link href={`/player/${courseId}`}>Testni qayta topshirish</Link>
+            </Button>
+          )}
+          <Button asChild variant="ghost">
+            <Link href="/dashboard">Dashboard</Link>
+          </Button>
+          <Button asChild variant="ghost">
+            <Link href="/">Bosh sahifa</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

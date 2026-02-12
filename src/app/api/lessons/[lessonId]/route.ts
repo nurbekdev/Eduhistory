@@ -8,14 +8,17 @@ import { prisma } from "@/lib/prisma";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 
 const updateLessonSchema = z.object({
-  title: z.string().min(3).optional(),
-  description: z.string().min(5).optional(),
-  content: z.string().optional(),
-  youtubeUrl: z.string().url().optional(),
-  videoFileUrl: z.string().url().optional().or(z.literal("")),
-  durationMinutes: z.number().int().min(0).optional(),
-  isPublished: z.boolean().optional(),
-  order: z.number().int().min(1).optional(),
+  title: z.string().trim().min(3).optional(),
+  description: z.string().trim().min(5).optional(),
+  content: z.union([z.string(), z.null()]).optional().transform((v) => v ?? undefined),
+  youtubeUrl: z.union([z.string().url(), z.literal("")]).optional(),
+  videoFileUrl: z.union([z.string().url(), z.literal("")]).optional(),
+  durationMinutes: z.coerce.number().int().min(0).optional(),
+  isPublished: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((v) => (v === "true" || v === true ? true : v === "false" || v === false ? false : undefined)),
+  order: z.coerce.number().int().min(1).optional(),
 });
 
 type RouteContext = {
@@ -49,9 +52,23 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Bu darsni tahrirlashga ruxsat yo'q." }, { status: 403 });
   }
 
-  const parsed = updateLessonSchema.safeParse(await request.json());
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ message: "JSON formati noto'g'ri." }, { status: 400 });
+  }
+
+  const parsed = updateLessonSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ message: "Dars ma'lumotlari noto'g'ri." }, { status: 400 });
+    const issues = parsed.error.flatten();
+    const firstIssue = issues.formErrors[0] ?? Object.values(issues.fieldErrors).flat()[0];
+    const message =
+      typeof firstIssue === "string" ? firstIssue : "Dars ma'lumotlari noto'g'ri.";
+    return NextResponse.json(
+      { message, errors: issues.fieldErrors },
+      { status: 400 },
+    );
   }
 
   if (parsed.data.order && parsed.data.order !== lesson.order) {
@@ -73,7 +90,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     where: { id: lessonId },
     data: {
       ...parsed.data,
-      youtubeUrl: parsed.data.youtubeUrl ? toYoutubeEmbedUrl(parsed.data.youtubeUrl) : undefined,
+      youtubeUrl:
+        parsed.data.youtubeUrl !== undefined
+          ? (parsed.data.youtubeUrl ? toYoutubeEmbedUrl(parsed.data.youtubeUrl) : "")
+          : undefined,
       videoFileUrl: parsed.data.videoFileUrl === "" ? null : parsed.data.videoFileUrl,
     },
   });

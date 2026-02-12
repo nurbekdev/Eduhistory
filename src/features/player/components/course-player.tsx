@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Lock } from "lucide-react";
+import { Clock3, FileText, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -207,47 +207,88 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
       </Card>
 
       {activeLesson ? (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{activeLesson.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="aspect-video overflow-hidden rounded-lg border">
-                <iframe
-                  src={toYoutubeEmbedUrl(activeLesson.youtubeUrl)}
-                  title={activeLesson.title}
-                  className="h-full w-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allowFullScreen
-                />
+        <div className="space-y-6">
+          <Card className="overflow-hidden">
+            <CardHeader className="space-y-1 border-b bg-slate-50/50 pb-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-xl">{activeLesson.title}</CardTitle>
+                {activeLesson.durationMinutes > 0 && (
+                  <Badge variant="outline" className="gap-1 font-normal text-slate-600">
+                    <Clock3 className="size-3.5" />
+                    {activeLesson.durationMinutes} daq
+                  </Badge>
+                )}
               </div>
-              <p className="text-sm text-zinc-700">{activeLesson.description}</p>
-              {activeLesson.content ? <p className="text-sm text-zinc-600">{activeLesson.content}</p> : null}
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              {activeLesson.youtubeUrl?.trim() ? (
+                <div className="aspect-video overflow-hidden rounded-xl border border-slate-200 bg-black shadow-sm">
+                  <iframe
+                    src={toYoutubeEmbedUrl(activeLesson.youtubeUrl)}
+                    title={activeLesson.title}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-slate-500">
+                  <span className="text-sm">Bu darsda video yo&apos;q</span>
+                </div>
+              )}
+
+              {activeLesson.description ? (
+                <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-4">
+                  <p className="text-sm font-medium text-slate-600">Qisqa tavsif</p>
+                  <p className="mt-1 text-base leading-relaxed text-slate-800">{activeLesson.description}</p>
+                </div>
+              ) : null}
+
+              {activeLesson.content ? (
+                <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-medium text-slate-600">Dars matni</p>
+                  <div className="mt-3 text-base leading-relaxed text-slate-800 whitespace-pre-wrap">
+                    {activeLesson.content}
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Materiallar</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileText className="size-4 text-emerald-600" />
+                  Materiallar
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
+              <CardContent className="space-y-2">
                 {activeLesson.materials.length === 0 ? (
-                  <p className="text-zinc-600">Qo'shimcha materiallar yo'q.</p>
+                  <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 py-6 text-center text-sm text-slate-500">
+                    Qo'shimcha materiallar yo'q
+                  </p>
                 ) : (
-                  activeLesson.materials.map((material) => (
-                    <a
-                      key={material.id}
-                      href={material.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block rounded-md border p-2 hover:bg-zinc-50"
-                    >
-                      {material.fileName}
-                    </a>
-                  ))
+                  <div className="space-y-2">
+                    {activeLesson.materials.map((material) => (
+                      <a
+                        key={material.id}
+                        href={material.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition hover:border-emerald-200 hover:bg-emerald-50/50"
+                      >
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                          <FileText className="size-5" />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">
+                          {material.fileName}
+                        </span>
+                        <span className="text-xs text-slate-500">Yuklab olish</span>
+                      </a>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>

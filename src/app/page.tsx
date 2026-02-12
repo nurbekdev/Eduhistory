@@ -130,16 +130,8 @@ export default function LandingPage() {
             </div>
 
             <div className="relative">
-              <Card className="animate-float-slow rounded-2xl border border-white/60 bg-white/90 shadow-xl backdrop-blur">
+              <Card className="rounded-2xl border border-white/60 bg-white/90 shadow-xl backdrop-blur">
                 <CardHeader className="space-y-1">
-                  <Image
-                    src="/images/dashboard-preview.jpg"
-                    alt="Eduhistory dashboard preview"
-                    width={1200}
-                    height={800}
-                    className="h-auto w-full rounded-xl object-cover shadow-sm"
-                    priority
-                  />
                   <CardTitle className="text-lg text-slate-900">Eduhistory boshqaruv paneli</CardTitle>
                   <CardDescription className="text-slate-600">Kurslar, progress va analitika real vaqtga yaqin</CardDescription>
                 </CardHeader>

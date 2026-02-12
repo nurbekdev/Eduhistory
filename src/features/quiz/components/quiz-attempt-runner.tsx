@@ -18,6 +18,8 @@ type AttemptPayload = {
   startedAt: string;
   submittedAt: string | null;
   scorePercent: number;
+  /** Server-computed so client/server time drift doesn't end quiz immediately */
+  remainingSeconds?: number;
   quiz: {
     id: string;
     title: string;
@@ -81,7 +83,7 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
   const draftKey = `quiz-draft:${attemptId}`;
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string[]>>({});
-  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -113,6 +115,10 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
 
   useEffect(() => {
     if (!query.data) return;
+    if (query.data.status === "IN_PROGRESS" && typeof query.data.remainingSeconds === "number") {
+      setRemainingSeconds(query.data.remainingSeconds);
+      return;
+    }
     const total = query.data.quiz.timeLimitMinutes * 60;
     const elapsed = Math.floor((Date.now() - new Date(query.data.startedAt).getTime()) / 1000);
     setRemainingSeconds(Math.max(0, total - elapsed));
@@ -121,13 +127,13 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
   useEffect(() => {
     if (!isInProgress) return;
     const interval = setInterval(() => {
-      setRemainingSeconds((prev) => Math.max(prev - 1, 0));
+      setRemainingSeconds((prev) => (prev === null ? null : Math.max(prev - 1, 0)));
     }, 1000);
     return () => clearInterval(interval);
   }, [isInProgress]);
 
   useEffect(() => {
-    if (!isInProgress || remainingSeconds > 0 || autoSubmittedRef.current) return;
+    if (!isInProgress || remainingSeconds === null || remainingSeconds > 0 || autoSubmittedRef.current) return;
     autoSubmittedRef.current = true;
     void onSubmit(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,9 +270,9 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="warning">Attempt #{query.data.attemptNumber}</Badge>
             <Badge>{answeredCount}/{questions.length} javob berilgan</Badge>
-            <Badge variant={remainingSeconds <= 60 ? "warning" : "default"} className="gap-1">
+            <Badge variant={remainingSeconds !== null && remainingSeconds <= 60 ? "warning" : "default"} className="gap-1">
               <Clock3 className="size-3.5" />
-              {formatRemaining(remainingSeconds)}
+              {remainingSeconds === null ? "–:–" : formatRemaining(remainingSeconds)}
             </Badge>
             <Badge variant="locked" className="gap-1">
               <Save className="size-3.5" />

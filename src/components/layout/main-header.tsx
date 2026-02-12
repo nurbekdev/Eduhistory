@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 
@@ -40,8 +41,9 @@ export async function MainHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/70 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="text-lg font-bold tracking-tight text-emerald-700">
-          Eduhistory
+        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
+          <Image src="/eduhistory-logo.svg" alt="Eduhistory" width={36} height={36} className="h-9 w-9 shrink-0" />
+          <span className="text-lg font-bold tracking-tight text-emerald-700">Eduhistory</span>
         </Link>
         <nav className="hidden gap-2 md:flex">
           {[...publicLinks, ...roleLinks].map((link) => (

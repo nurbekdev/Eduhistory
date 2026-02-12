@@ -13,7 +13,7 @@ const updateCourseSchema = z.object({
   description: z.string().min(10).optional(),
   category: z.string().min(2).optional(),
   level: z.nativeEnum(CourseLevel).optional(),
-  coverImageUrl: z.string().url().optional().or(z.literal("")),
+  coverImageUrl: z.union([z.string().url(), z.string().min(1).startsWith("/")]).optional().or(z.literal("")),
   durationMinutes: z.number().int().min(0).optional(),
   defaultPassingScore: z.number().int().min(0).max(100).optional(),
   defaultAttemptLimit: z.number().int().min(1).max(10).optional(),

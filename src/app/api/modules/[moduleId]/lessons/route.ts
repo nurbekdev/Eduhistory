@@ -8,12 +8,12 @@ import { prisma } from "@/lib/prisma";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 
 const createLessonSchema = z.object({
-  title: z.string().min(3),
-  description: z.string().min(5),
+  title: z.string().trim().min(3),
+  description: z.string().trim().min(5),
   content: z.string().optional(),
-  youtubeUrl: z.string().url(),
+  youtubeUrl: z.union([z.string().url(), z.literal("")]).default(""),
   videoFileUrl: z.string().url().optional().or(z.literal("")),
-  durationMinutes: z.number().int().min(0).default(0),
+  durationMinutes: z.coerce.number().int().min(0).default(0),
   isPublished: z.boolean().default(false),
 });
 
@@ -65,7 +65,7 @@ export async function POST(request: Request, context: RouteContext) {
       title: parsed.data.title,
       description: parsed.data.description,
       content: parsed.data.content,
-      youtubeUrl: toYoutubeEmbedUrl(parsed.data.youtubeUrl),
+      youtubeUrl: parsed.data.youtubeUrl ? toYoutubeEmbedUrl(parsed.data.youtubeUrl) : "",
       videoFileUrl: parsed.data.videoFileUrl === "" ? null : parsed.data.videoFileUrl,
       durationMinutes: parsed.data.durationMinutes,
       isPublished: parsed.data.isPublished,

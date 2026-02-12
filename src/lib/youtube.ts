@@ -1,6 +1,6 @@
 const YOUTUBE_EMBED_BASE = "https://www.youtube-nocookie.com/embed";
 
-function extractYoutubeVideoId(input: string) {
+export function extractYoutubeVideoId(input: string) {
   try {
     const url = new URL(input);
     const host = url.hostname.replace(/^www\./, "");

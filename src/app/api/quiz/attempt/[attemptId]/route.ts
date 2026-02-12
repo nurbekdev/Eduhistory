@@ -53,6 +53,12 @@ export async function GET(_request: Request, context: RouteContext) {
   const safeTimeLimitMinutes =
     attempt.quiz.timeLimitMinutes && attempt.quiz.timeLimitMinutes > 0 ? attempt.quiz.timeLimitMinutes : 20;
 
+  const totalSeconds = safeTimeLimitMinutes * 60;
+  const now = Date.now();
+  const startedAtMs = new Date(attempt.startedAt).getTime();
+  const elapsedSeconds = Math.floor((now - startedAtMs) / 1000);
+  const remainingSeconds = attempt.status === "IN_PROGRESS" ? Math.max(0, totalSeconds - elapsedSeconds) : undefined;
+
   return NextResponse.json({
     id: attempt.id,
     status: attempt.status,
@@ -60,6 +66,7 @@ export async function GET(_request: Request, context: RouteContext) {
     startedAt: attempt.startedAt,
     submittedAt: attempt.submittedAt,
     scorePercent: attempt.scorePercent,
+    ...(remainingSeconds !== undefined && { remainingSeconds }),
     quiz: {
       id: attempt.quiz.id,
       title: attempt.quiz.title,

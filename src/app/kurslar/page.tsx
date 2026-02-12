@@ -16,12 +16,41 @@ const levelMap: Record<CourseLevel, string> = {
 };
 
 function getCoursePreviewImage(category: string, coverImageUrl?: string | null) {
-  if (coverImageUrl) return coverImageUrl;
+  if (coverImageUrl && coverImageUrl.startsWith("http")) return coverImageUrl;
+  if (coverImageUrl && coverImageUrl.startsWith("/")) return coverImageUrl;
   const lower = category.toLowerCase();
   if (lower.includes("robot")) return "/images/robotics.jpg";
   if (lower.includes("it")) return "/images/it.jpg";
   if (lower.includes("3d")) return "/images/3d.jpg";
   return "/images/it.jpg";
+}
+
+function CourseCoverImage({
+  src,
+  alt,
+}: {
+  src: string;
+  alt: string;
+}) {
+  const isExternal = src.startsWith("http");
+  const className = "h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]";
+  if (isExternal) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className={className}
+      />
+    );
+  }
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      className={className}
+    />
+  );
 }
 
 export default async function CoursesPage() {
@@ -61,11 +90,9 @@ export default async function CoursesPage() {
           courses.map((course) => (
             <Card key={course.id} className="group overflow-hidden">
               <div className="relative h-44 w-full overflow-hidden">
-                <Image
+                <CourseCoverImage
                   src={getCoursePreviewImage(course.category, course.coverImageUrl)}
                   alt={`${course.title} rasmi`}
-                  fill
-                  className="object-cover transition duration-300 group-hover:scale-[1.04]"
                 />
               </div>
               <CardHeader>
