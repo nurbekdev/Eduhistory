@@ -1,0 +1,144 @@
+import { QuestionType, Role } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+const finalQuizSchema = z.object({
+  title: z.string().min(3),
+  description: z.string().optional(),
+  passingScore: z.number().int().min(1).max(100),
+  attemptLimit: z.number().int().min(1).max(10),
+  questions: z
+    .array(
+      z.object({
+        text: z.string().min(5),
+        explanation: z.string().optional(),
+        type: z.nativeEnum(QuestionType),
+        options: z
+          .array(
+            z.object({
+              text: z.string().min(1),
+              isCorrect: z.boolean(),
+            }),
+          )
+          .min(2),
+      }),
+    )
+    .min(1),
+});
+
+type RouteContext = {
+  params: Promise<{ courseId: string }>;
+};
+
+export async function PUT(request: Request, context: RouteContext) {
+  const session = await getServerSession(authOptions);
+  const isManager = session?.user?.role === Role.ADMIN || session?.user?.role === Role.INSTRUCTOR;
+  if (!session?.user?.id || !isManager) {
+    return NextResponse.json({ message: "Sizda bu amal uchun ruxsat yo'q." }, { status: 403 });
+  }
+
+  const { courseId } = await context.params;
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { id: true, instructorId: true },
+  });
+  if (!course) {
+    return NextResponse.json({ message: "Kurs topilmadi." }, { status: 404 });
+  }
+  if (session.user.role !== Role.ADMIN && course.instructorId !== session.user.id) {
+    return NextResponse.json({ message: "Bu kurs final testini boshqarishga ruxsat yo'q." }, { status: 403 });
+  }
+
+  const parsed = finalQuizSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const issueMessage = issue ? `${issue.path.join(".") || "field"}: ${issue.message}` : "Final quiz ma'lumotlari noto'g'ri.";
+    return NextResponse.json({ message: issueMessage }, { status: 400 });
+  }
+
+  const invalidQuestion = parsed.data.questions.find((question) => {
+    const correctCount = question.options.filter((option) => option.isCorrect).length;
+    if (question.type === QuestionType.MULTIPLE_CHOICE) return correctCount !== 1;
+    return correctCount < 1;
+  });
+  if (invalidQuestion) {
+    return NextResponse.json(
+      { message: "Savol variantlarida kamida bitta to'g'ri javob bo'lishi kerak." },
+      { status: 400 },
+    );
+  }
+
+  const quiz = await prisma.$transaction(async (tx) => {
+    const existing = await tx.quiz.findFirst({
+      where: { courseId, isFinal: true },
+    });
+    const target =
+      existing ??
+      (await tx.quiz.create({
+        data: {
+          courseId,
+          isFinal: true,
+          lessonId: null,
+          createdById: session.user.id,
+          title: parsed.data.title,
+          description: parsed.data.description,
+          passingScore: parsed.data.passingScore,
+          attemptLimit: parsed.data.attemptLimit,
+        },
+      }));
+
+    await tx.option.deleteMany({
+      where: {
+        question: { quizId: target.id },
+      },
+    });
+    await tx.question.deleteMany({
+      where: { quizId: target.id },
+    });
+
+    await tx.quiz.update({
+      where: { id: target.id },
+      data: {
+        title: parsed.data.title,
+        description: parsed.data.description,
+        passingScore: parsed.data.passingScore,
+        attemptLimit: parsed.data.attemptLimit,
+        questions: {
+          create: parsed.data.questions.map((question, questionIndex) => ({
+            text: question.text,
+            explanation: question.explanation,
+            type: question.type,
+            order: questionIndex + 1,
+            options: {
+              create: question.options.map((option, optionIndex) => ({
+                text: option.text,
+                isCorrect: option.isCorrect,
+                order: optionIndex + 1,
+              })),
+            },
+          })),
+        },
+      },
+    });
+
+    return tx.quiz.findUnique({
+      where: { id: target.id },
+      include: {
+        questions: {
+          include: {
+            options: {
+              orderBy: { order: "asc" },
+            },
+          },
+          orderBy: { order: "asc" },
+        },
+      },
+    });
+  });
+
+  return NextResponse.json(quiz);
+}

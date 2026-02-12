@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Eduhistory LMS
 
-## Getting Started
+Eduhistory - to'liq o'zbek tilidagi LMS platforma skeleti.
 
-First, run the development server:
+## Stack
+
+- Frontend: Next.js (App Router), TypeScript, TailwindCSS, shadcn-style UI komponentlar
+- Backend: Next.js Route Handlers (monolit arxitektura)
+- DB: PostgreSQL + Prisma
+- Auth: NextAuth (Credentials + optional Google)
+- Analytics: Recharts
+- Validatsiya: Zod + React Hook Form
+- Test: Vitest (minimal unit)
+- DevOps: Docker Compose
+
+## Tezkor ishga tushirish (lokal)
+
+1. Env fayl yaratish:
+
+```bash
+cp .env.example .env
+```
+
+`POSTGRES_PORT` default `5433` ga qo'yilgan (5432 port band bo'lsa xatolik bermasligi uchun).
+
+2. PostgreSQL ni ishga tushirish (Docker orqali):
+
+```bash
+docker compose up -d postgres
+```
+
+3. Dependency o'rnatish:
+
+```bash
+npm install
+```
+
+4. Prisma client + schema:
+
+```bash
+npm run prisma:generate
+npm run db:push
+```
+
+5. Seed data:
+
+```bash
+npm run prisma:seed
+```
+
+6. App ni ishga tushirish:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App: `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Demo foydalanuvchilar (seed)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Admin: `admin@eduhistory.uz` / `Eduhistory2026!`
+- Ustoz: `ustoz@eduhistory.uz` / `Eduhistory2026!`
+- Talaba: `talaba@eduhistory.uz` / `Eduhistory2026!`
 
-## Learn More
+## Docker bilan to'liq ishga tushirish
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+docker compose up --build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Muhim route'lar
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Public: `/`, `/kurslar`, `/kurslar/[slug]`, `/sertifikat/[uuid]`
+- Auth: `/kirish`, `/royxatdan-otish`
+- Student: `/dashboard`, `/mening-kurslarim`, `/player/[courseId]`, `/quiz/[attemptId]`, `/natijalar/[attemptId]`, `/sertifikatlar`
+- Admin/Ustoz: `/boshqaruv`, `/boshqaruv/kurslar`, `/boshqaruv/analitika`, ...
 
-## Deploy on Vercel
+## Hozirgi bosqich holati
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Bu commit birinchi bosqichni qoplaydi:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Arxitektura va papkalar strukturasi
+- Prisma schema (LMS uchun asosiy entitylar)
+- Auth/RBAC/rate-limit/storage abstraction poydevori
+- Asosiy UI route skeletonlar (100% uzbekcha)
+- API skeletonlar (kurslar, quiz urinish, sertifikat verify/generate, analytics export)
+- Seed script va docker compose
+
+Keyingi bosqichda CRUD, real gating logikasi, full analytics UI va qo'shimcha testlar chuqurlashtiriladi.
