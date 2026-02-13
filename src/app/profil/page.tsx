@@ -5,9 +5,11 @@ import { redirect } from "next/navigation";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { SectionTitle } from "@/components/shared/section-title";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProfileEdit } from "@/features/profile/components/profile-edit";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -30,7 +32,11 @@ export default async function ProfilePage() {
       fullName: true,
       email: true,
       role: true,
+      imageUrl: true,
       createdAt: true,
+      instructorProfile: {
+        select: { bio: true, workplace: true, linkedinUrl: true },
+      },
       _count: {
         select: {
           enrollments: true,
@@ -66,14 +72,20 @@ export default async function ProfilePage() {
     <PageContainer className="space-y-6">
       <SectionTitle title="Mening profilim" description="Akkaunt ma'lumotlari va shaxsiy faoliyat ko'rsatkichlari." />
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle>{user.fullName}</CardTitle>
-              <Badge variant="locked">{roleText(user.role)}</Badge>
-            </div>
-            <CardDescription>{user.email}</CardDescription>
+      <div className="space-y-6">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <Avatar src={user.imageUrl} alt={user.fullName} size="lg" />
+                  <div>
+                    <CardTitle className="text-lg">{user.fullName}</CardTitle>
+                    <CardDescription>{user.email}</CardDescription>
+                  </div>
+                </div>
+                <Badge variant="locked">{roleText(user.role)}</Badge>
+              </div>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-zinc-700">
             <p>Foydalanuvchi ID: {user.id}</p>
@@ -124,6 +136,13 @@ export default async function ProfilePage() {
         </Card>
       </div>
 
+      <ProfileEdit
+        imageUrl={user.imageUrl}
+        fullName={user.fullName}
+        role={user.role}
+        instructorProfile={user.instructorProfile}
+      />
+
       {user.role === Role.STUDENT ? (
         <Card>
           <CardHeader>
@@ -156,6 +175,7 @@ export default async function ProfilePage() {
           </CardFooter>
         </Card>
       ) : null}
+      </div>
     </PageContainer>
   );
 }

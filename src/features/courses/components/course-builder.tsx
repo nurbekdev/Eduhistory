@@ -8,6 +8,7 @@ import { FileText, Loader2, Upload, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RichTextEditor } from "@/components/rich-text-editor/rich-text-editor";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LessonQuizBuilder } from "@/features/courses/components/lesson-quiz-builder";
@@ -51,11 +52,13 @@ type CourseDetail = {
         description: string | null;
         passingScore: number;
         attemptLimit: number;
+        timeLimitMinutes?: number | null;
         questions: Array<{
           id: string;
           text: string;
           explanation: string | null;
-          type: "MULTIPLE_CHOICE" | "MULTIPLE_SELECT";
+          type: string;
+          metadata?: unknown;
           options: Array<{
             id: string;
             text: string;
@@ -71,11 +74,13 @@ type CourseDetail = {
     description: string | null;
     passingScore: number;
     attemptLimit: number;
+    timeLimitMinutes?: number | null;
     questions: Array<{
       id: string;
       text: string;
       explanation: string | null;
-      type: "MULTIPLE_CHOICE" | "MULTIPLE_SELECT";
+      type: string;
+      metadata?: unknown;
       options: Array<{
         id: string;
         text: string;
@@ -677,10 +682,20 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
                       </Button>
                     </div>
                     <div className="md:col-span-2">
-                      <Textarea
+                      <RichTextEditor
                         placeholder="Dars matni (qisqa tavsif, qo'llanma va h.k.)"
                         value={draftForModule(moduleItem.id).content}
-                        onChange={(event) => setDraftForModule(moduleItem.id, { content: event.target.value })}
+                        onChange={(html) => setDraftForModule(moduleItem.id, { content: html })}
+                        minHeight="200px"
+                        onImageUpload={async (file) => {
+                          const formData = new FormData();
+                          formData.set("file", file);
+                          formData.set("folder", "lesson-content");
+                          const res = await fetch("/api/upload", { method: "POST", body: formData });
+                          if (!res.ok) throw new Error("Yuklashda xatolik");
+                          const data = (await res.json()) as { fileUrl: string };
+                          return data.fileUrl.startsWith("http") ? data.fileUrl : `${typeof window !== "undefined" ? window.location.origin : ""}${data.fileUrl}`;
+                        }}
                       />
                     </div>
                     <div className="md:col-span-2 space-y-2">
@@ -920,9 +935,9 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
                             </Button>
                           </div>
                           <div className="md:col-span-2">
-                            <Textarea
+                            <RichTextEditor
                               value={lesson.content ?? ""}
-                              onChange={(event) =>
+                              onChange={(html) =>
                                 queryClient.setQueryData<CourseDetail>(["course-builder", courseId], (prev) =>
                                   prev
                                     ? {
@@ -932,9 +947,7 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
                                             ? {
                                                 ...moduleMap,
                                                 lessons: moduleMap.lessons.map((lessonMap) =>
-                                                  lessonMap.id === lesson.id
-                                                    ? { ...lessonMap, content: event.target.value }
-                                                    : lessonMap,
+                                                  lessonMap.id === lesson.id ? { ...lessonMap, content: html } : lessonMap,
                                                 ),
                                               }
                                             : moduleMap,
@@ -943,6 +956,17 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
                                     : prev,
                                 )
                               }
+                              placeholder="Dars matni"
+                              minHeight="200px"
+                              onImageUpload={async (file) => {
+                                const formData = new FormData();
+                                formData.set("file", file);
+                                formData.set("folder", "lesson-content");
+                                const res = await fetch("/api/upload", { method: "POST", body: formData });
+                                if (!res.ok) throw new Error("Yuklashda xatolik");
+                                const data = (await res.json()) as { fileUrl: string };
+                                return data.fileUrl.startsWith("http") ? data.fileUrl : `${typeof window !== "undefined" ? window.location.origin : ""}${data.fileUrl}`;
+                              }}
                             />
                           </div>
                           <div className="flex items-center gap-2">

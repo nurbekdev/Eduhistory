@@ -12,6 +12,7 @@ import { SectionTitle } from "@/components/shared/section-title";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
 const StudentProgressChart = dynamic(
   () =>
@@ -56,6 +57,7 @@ async function getMyCertificates(): Promise<MyCertificate[]> {
 
 export default function StudentDashboardPage() {
   const session = useSession();
+  const { t } = useLocale();
   const query = useQuery({
     queryKey: ["me-courses-dashboard"],
     queryFn: getMyCourses,
@@ -85,47 +87,47 @@ export default function StudentDashboardPage() {
   return (
     <PageContainer>
       <SectionTitle
-        title="Talaba dashboard"
-        description="Progress, test natijalari va oxirgi faoliyatingiz bir joyda."
+        title={t("dashboard.title")}
+        description={t("dashboard.subtitle")}
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-white">
+        <Card className="bg-white dark:bg-slate-800">
           <CardHeader className="pb-2">
-            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
               <GraduationCap className="size-4" />
             </div>
-            <CardTitle className="text-sm text-slate-500">Yozilgan kurslar</CardTitle>
+            <CardTitle className="text-sm text-slate-500 dark:text-slate-400">{t("dashboard.enrolled")}</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-slate-900">{stats.totalCourses}</CardContent>
+          <CardContent className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.totalCourses}</CardContent>
         </Card>
-        <Card className="bg-white">
+        <Card className="bg-white dark:bg-slate-800">
           <CardHeader className="pb-2">
-            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
               <BookOpen className="size-4" />
             </div>
-            <CardTitle className="text-sm text-slate-500">Tugallangan darslar</CardTitle>
+            <CardTitle className="text-sm text-slate-500 dark:text-slate-400">{t("dashboard.completed")}</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-slate-900">
+          <CardContent className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             {stats.completedLessons}/{stats.totalLessons}
           </CardContent>
         </Card>
-        <Card className="bg-white">
+        <Card className="bg-white dark:bg-slate-800">
           <CardHeader className="pb-2">
-            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
               <CheckCircle2 className="size-4" />
             </div>
-            <CardTitle className="text-sm text-slate-500">Completion</CardTitle>
+            <CardTitle className="text-sm text-slate-500 dark:text-slate-400">{t("dashboard.avgProgress")}</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-slate-900">{stats.avgProgress}%</CardContent>
+          <CardContent className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.avgProgress}%</CardContent>
         </Card>
-        <Card className="bg-white">
+        <Card className="bg-white dark:bg-slate-800">
           <CardHeader className="pb-2">
-            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
               <Medal className="size-4" />
             </div>
-            <CardTitle className="text-sm text-slate-500">Sertifikatlar</CardTitle>
+            <CardTitle className="text-sm text-slate-500 dark:text-slate-400">{t("dashboard.certificates")}</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-slate-900">
+          <CardContent className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             {certificatesQuery.isLoading ? "..." : certificatesQuery.data?.length ?? 0}
           </CardContent>
         </Card>
@@ -134,27 +136,27 @@ export default function StudentDashboardPage() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Mening profilim</CardTitle>
+            <CardTitle>{t("dashboard.profile")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <span>F.I.SH</span>
-              <strong>{session.data?.user?.name ?? "Noma'lum"}</strong>
+            <div className="flex items-center justify-between rounded-md border p-3 dark:border-slate-700">
+              <span className="dark:text-slate-300">F.I.SH</span>
+              <strong className="dark:text-slate-100">{session.data?.user?.name ?? t("dashboard.unknown")}</strong>
             </div>
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <span>Email</span>
-              <strong>{session.data?.user?.email ?? "Noma'lum"}</strong>
+            <div className="flex items-center justify-between rounded-md border p-3 dark:border-slate-700">
+              <span className="dark:text-slate-300">Email</span>
+              <strong className="dark:text-slate-100">{session.data?.user?.email ?? t("dashboard.unknown")}</strong>
             </div>
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <span>Rol</span>
-              <Badge variant="locked">Talaba</Badge>
+            <div className="flex items-center justify-between rounded-md border p-3 dark:border-slate-700">
+              <span className="dark:text-slate-300">{t("dashboard.role")}</span>
+              <Badge variant="locked">{t("role.student")}</Badge>
             </div>
             <div className="flex gap-2">
               <Button asChild variant="outline" className="flex-1">
-                <Link href="/profil">Profilni ochish</Link>
+                <Link href="/profil">{t("dashboard.openProfile")}</Link>
               </Button>
               <Button asChild variant="outline" className="flex-1">
-                <Link href="/mening-kurslarim">Kurslarim</Link>
+                <Link href="/mening-kurslarim">{t("dashboard.myCoursesLink")}</Link>
               </Button>
             </div>
           </CardContent>
@@ -162,30 +164,30 @@ export default function StudentDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Sertifikatlar</CardTitle>
+            <CardTitle>{t("dashboard.certificates")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {certificatesQuery.isLoading ? (
-              <p className="text-slate-500">Sertifikatlar yuklanmoqda...</p>
+              <p className="text-slate-500 dark:text-slate-400">{t("dashboard.certificatesLoading")}</p>
             ) : certificatesQuery.data && certificatesQuery.data.length > 0 ? (
               certificatesQuery.data.slice(0, 3).map((certificate) => (
-                <div key={certificate.id} className="flex items-center justify-between rounded-md border p-3">
+                <div key={certificate.id} className="flex items-center justify-between rounded-md border p-3 dark:border-slate-700">
                   <div>
-                    <p className="font-medium">{certificate.course.title}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-medium dark:text-slate-100">{certificate.course.title}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       {new Date(certificate.issuedAt).toLocaleDateString("uz-UZ")} • {certificate.finalScore}%
                     </p>
                   </div>
                   <Button asChild size="sm" variant="outline">
-                    <Link href={`/sertifikat/${certificate.uuid}`}>Ko'rish</Link>
+                    <Link href={`/sertifikat/${certificate.uuid}`}>{t("dashboard.viewCert")}</Link>
                   </Button>
                 </div>
               ))
             ) : (
-              <p className="text-slate-500">Hozircha sertifikat yo'q.</p>
+              <p className="text-slate-500 dark:text-slate-400">{t("dashboard.noCertificates")}</p>
             )}
             <Button asChild className="w-full">
-              <Link href="/sertifikatlar">Barcha sertifikatlarni ko'rish</Link>
+              <Link href="/sertifikatlar">{t("certificates.viewAll")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -193,7 +195,7 @@ export default function StudentDashboardPage() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Baholar dinamikasi</CardTitle>
+          <CardTitle>{t("dashboard.gradesDynamics")}</CardTitle>
         </CardHeader>
         <CardContent>
           <StudentProgressChart />

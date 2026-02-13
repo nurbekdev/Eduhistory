@@ -85,15 +85,15 @@ export default async function ManagementDashboardPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card>
+        <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
           <CardHeader>
             <div className="flex items-center justify-between gap-2">
-              <CardTitle>{session.user.name ?? "Foydalanuvchi"}</CardTitle>
+              <CardTitle className="text-slate-900 dark:text-slate-100">{session.user.name ?? "Foydalanuvchi"}</CardTitle>
               <Badge variant="locked">{roleText(session.user.role)}</Badge>
             </div>
-            <CardDescription>{session.user.email}</CardDescription>
+            <CardDescription className="text-slate-500 dark:text-slate-400">{session.user.email}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-zinc-700">
+          <CardContent className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
             <p>Bu sahifa orqali kurslar, darslar, testlar va student statistikalarini boshqarishingiz mumkin.</p>
           </CardContent>
           <CardFooter className="flex flex-wrap gap-2">
@@ -110,41 +110,41 @@ export default async function ManagementDashboardPage() {
         </Card>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="bg-white">
+          <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
             <CardHeader className="pb-2">
-              <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
                 <BookOpen className="size-4" />
               </div>
-              <CardTitle className="text-sm text-slate-500">Kurslar</CardTitle>
+              <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Kurslar</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-bold text-slate-900">{totalCourses}</CardContent>
+            <CardContent className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalCourses}</CardContent>
           </Card>
-          <Card className="bg-white">
+          <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
             <CardHeader className="pb-2">
-              <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
                 <CheckCircle2 className="size-4" />
               </div>
-              <CardTitle className="text-sm text-slate-500">Published</CardTitle>
+              <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Published</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-bold text-slate-900">{publishedCourses}</CardContent>
+            <CardContent className="text-2xl font-bold text-slate-900 dark:text-slate-100">{publishedCourses}</CardContent>
           </Card>
-          <Card className="bg-white">
+          <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
             <CardHeader className="pb-2">
-              <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
                 <Users className="size-4" />
               </div>
-              <CardTitle className="text-sm text-slate-500">Students</CardTitle>
+              <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Students</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-bold text-slate-900">{totalEnrollments}</CardContent>
+            <CardContent className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalEnrollments}</CardContent>
           </Card>
-          <Card className="bg-white">
+          <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
             <CardHeader className="pb-2">
-              <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
                 <Medal className="size-4" />
               </div>
-              <CardTitle className="text-sm text-slate-500">Certificates</CardTitle>
+              <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Certificates</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-bold text-slate-900">{totalCertificates}</CardContent>
+            <CardContent className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalCertificates}</CardContent>
           </Card>
         </div>
       </div>

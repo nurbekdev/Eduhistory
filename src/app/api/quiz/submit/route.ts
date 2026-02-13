@@ -1,4 +1,4 @@
-import { AttemptStatus, EnrollmentStatus, ProgressStatus } from "@prisma/client";
+import { AttemptStatus, EnrollmentStatus, ProgressStatus, QuestionType } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -12,7 +12,7 @@ const submitSchema = z.object({
   answers: z.array(
     z.object({
       questionId: z.string().min(1),
-      selectedOptionIds: z.array(z.string()),
+      selectedOptionIds: z.union([z.array(z.string()), z.record(z.unknown())]),
     }),
   ),
 });
@@ -52,18 +52,58 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Bu urinish allaqachon yakunlangan." }, { status: 409 });
   }
 
-  const answerMap = new Map(parsed.data.answers.map((a) => [a.questionId, a.selectedOptionIds.sort()]));
-  let correctCount = 0;
+  const answerMap = new Map(
+    parsed.data.answers.map((a) => [
+      a.questionId,
+      Array.isArray(a.selectedOptionIds) ? [...a.selectedOptionIds].sort() : a.selectedOptionIds,
+    ])
+  );
 
-  for (const question of attempt.quiz.questions) {
-    const selected = answerMap.get(question.id) ?? [];
-    const correctOptionIds = question.options
-      .filter((option) => option.isCorrect)
-      .map((option) => option.id)
-      .sort();
-    if (JSON.stringify(selected) === JSON.stringify(correctOptionIds)) {
-      correctCount += 1;
+  function isQuestionCorrect(
+    question: { type: string; options: { id: string; isCorrect: boolean }[]; metadata?: unknown },
+    answer: unknown
+  ): boolean {
+    const optionBased = [QuestionType.MULTIPLE_CHOICE, QuestionType.MULTIPLE_SELECT, QuestionType.TRUE_FALSE];
+    if (optionBased.includes(question.type as QuestionType)) {
+      const selected = Array.isArray(answer) ? (answer as string[]).sort() : [];
+      const correctIds = question.options
+        .filter((o) => o.isCorrect)
+        .map((o) => o.id)
+        .sort();
+      return JSON.stringify(selected) === JSON.stringify(correctIds);
     }
+    if (question.type === QuestionType.NUMERICAL) {
+      const meta = question.metadata as { correct?: number; tolerance?: number } | null;
+      const correct = meta?.correct ?? 0;
+      const tolerance = Math.abs(meta?.tolerance ?? 0);
+      const userNum = typeof answer === "object" && answer !== null && "number" in answer ? Number((answer as { number: number }).number) : Number(answer);
+      if (!Number.isFinite(userNum)) return false;
+      return Math.abs(userNum - correct) <= tolerance;
+    }
+    if (question.type === QuestionType.MATCHING) {
+      const meta = question.metadata as { pairs?: { left: string; right: string }[] } | null;
+      const correctPairs = (meta?.pairs ?? []).map((p) => `${p.left}\t${p.right}`).sort().join("\n");
+      const userPairs = typeof answer === "object" && answer !== null && "pairs" in answer
+        ? (answer as { pairs: { left: string; right: string }[] }).pairs.map((p) => `${p.left}\t${p.right}`).sort().join("\n")
+        : "";
+      return correctPairs === userPairs;
+    }
+    if (question.type === QuestionType.CLOZE) {
+      const meta = question.metadata as { parts?: { type: string; value: string }[] } | null;
+      const correctBlanks = (meta?.parts ?? []).filter((p) => p.type === "blank").map((p) => (p.value ?? "").trim().toLowerCase());
+      const userBlanks = typeof answer === "object" && answer !== null && "blanks" in answer
+        ? ((answer as { blanks: string[] }).blanks ?? []).map((b) => String(b).trim().toLowerCase())
+        : [];
+      if (correctBlanks.length !== userBlanks.length) return false;
+      return correctBlanks.every((c, i) => c === (userBlanks[i] ?? ""));
+    }
+    return false;
+  }
+
+  let correctCount = 0;
+  for (const question of attempt.quiz.questions) {
+    const answer = answerMap.get(question.id);
+    if (isQuestionCorrect(question, answer)) correctCount += 1;
   }
 
   const totalQuestions = attempt.quiz.questions.length || 1;
@@ -85,17 +125,15 @@ export async function POST(request: Request) {
     await tx.attemptAnswer.createMany({
       data: parsed.data.answers.map((answer) => {
         const question = attempt.quiz.questions.find((q) => q.id === answer.questionId);
-        const correctOptionIds = question?.options
-          .filter((option) => option.isCorrect)
-          .map((option) => option.id)
-          .sort();
-        const selected = [...answer.selectedOptionIds].sort();
-
+        const rawAnswer = Array.isArray(answer.selectedOptionIds)
+          ? [...answer.selectedOptionIds].sort()
+          : answer.selectedOptionIds;
+        const isCorrect = question ? isQuestionCorrect(question, rawAnswer) : false;
         return {
           attemptId: attempt.id,
           questionId: answer.questionId,
-          selectedOptionIds: selected,
-          isCorrect: JSON.stringify(selected) === JSON.stringify(correctOptionIds ?? []),
+          selectedOptionIds: rawAnswer,
+          isCorrect,
         };
       }),
     });

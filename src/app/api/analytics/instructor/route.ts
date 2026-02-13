@@ -56,7 +56,7 @@ export async function GET(request: Request) {
 
   const perCourseMetrics = await Promise.all(
     courses.map(async (course) => {
-      const [completionCount, attempts, finalAttempts] = await Promise.all([
+      const [completionCount, attempts, finalAttempts, reviewAgg] = await Promise.all([
         prisma.enrollment.count({
           where: { courseId: course.id, status: "COMPLETED" },
         }),
@@ -67,6 +67,11 @@ export async function GET(request: Request) {
         prisma.quizAttempt.findMany({
           where: { quiz: { courseId: course.id, isFinal: true } },
           select: { status: true },
+        }),
+        prisma.courseReview.aggregate({
+          where: { courseId: course.id },
+          _avg: { rating: true },
+          _count: true,
         }),
       ]);
 
@@ -89,6 +94,8 @@ export async function GET(request: Request) {
         completionRate: course._count.enrollments ? toPercent((completionCount / course._count.enrollments) * 100) : 0,
         averageQuizScore: toPercent(averageQuizScore),
         finalPassRate: toPercent(finalPassRate),
+        averageRating: reviewAgg._avg.rating ? Number(reviewAgg._avg.rating.toFixed(2)) : null,
+        reviewCount: reviewAgg._count,
       };
     }),
   );
@@ -279,6 +286,38 @@ export async function GET(request: Request) {
       return row as { week: string } & Record<string, number | string>;
     });
 
+  const [recentReviews, ratingAgg] = await Promise.all([
+    prisma.courseReview.findMany({
+      where: { courseId: selectedCourseId },
+      include: { user: { select: { fullName: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+    prisma.courseReview.aggregate({
+      where: { courseId: selectedCourseId },
+      _avg: { rating: true },
+      _count: true,
+    }),
+  ]);
+
+  const insights: string[] = [];
+  const selectedMetric = perCourseMetrics.find((c) => c.id === selectedCourseId);
+  if (selectedMetric) {
+    if (selectedMetric.completionRate < 50) {
+      insights.push(`Kursni tugatish darajasi past (${selectedMetric.completionRate}%). Talabalar uchun qo'shimcha motivatsiya yoki kontentni qisqartirishni ko'rib chiqing.`);
+    }
+    if (selectedMetric.averageQuizScore > 0 && selectedMetric.averageQuizScore < 70) {
+      insights.push(`Quiz o'rtacha balli ${selectedMetric.averageQuizScore}%. Savol qiyinligi yoki tushuntirishlarni oshirish mumkin.`);
+    }
+    const worstDrop = lessonDropOff.sort((a, b) => b.dropOffRate - a.dropOffRate)[0];
+    if (worstDrop && worstDrop.dropOffRate > 30) {
+      insights.push(`"${worstDrop.lessonTitle}" darsida tushish eng yuqori (${worstDrop.dropOffRate}%). Kontent yoki davomiylikni tekshiring.`);
+    }
+    if (ratingAgg._count > 0 && ratingAgg._avg.rating && ratingAgg._avg.rating < 4) {
+      insights.push(`Kurs reytingi o'rtacha ${ratingAgg._avg.rating.toFixed(1)}. Talabalar fikrlari bo'limida izohlarni o'qib, yaxshilashlar kiriting.`);
+    }
+  }
+
   return NextResponse.json({
     courses: perCourseMetrics,
     selectedCourseId,
@@ -293,6 +332,16 @@ export async function GET(request: Request) {
         lessons: lessonMeta,
         rows: weeklyRows,
       },
+      averageRating: ratingAgg._avg.rating ? Number(ratingAgg._avg.rating.toFixed(2)) : null,
+      totalReviews: ratingAgg._count,
+      recentReviews: recentReviews.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt.toISOString(),
+        userName: r.user.fullName,
+      })),
+      insights,
     },
   });
 }

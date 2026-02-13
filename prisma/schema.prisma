@@ -48,8 +48,14 @@ enum ProgressStatus {
 }
 
 enum QuestionType {
-  MULTIPLE_CHOICE
-  MULTIPLE_SELECT
+  MULTIPLE_CHOICE   // single answer
+  MULTIPLE_SELECT   // multiple answers
+  TRUE_FALSE
+  MATCHING
+  CLOZE             // fill in the blanks
+  NUMERICAL
+  DRAG_DROP_IMAGE
+  DRAG_DROP_TEXT
 }
 
 enum AttemptStatus {
@@ -77,7 +83,40 @@ model User {
   lessonProgress LessonProgress[]
   quizAttempts  QuizAttempt[]
   certificates  Certificate[]
+  courseReviews CourseReview[]
+  instructorRequest InstructorRequest?
+  instructorProfile InstructorProfile?
   auditLogs     AuditLog[]     @relation("AuditActor")
+  notificationsCreated Notification[] @relation("NotificationCreator")
+}
+
+model InstructorProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  bio         String?  @db.Text
+  workplace   String?
+  linkedinUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum InstructorRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model InstructorRequest {
+  id           String                 @id @default(cuid())
+  userId       String                 @unique
+  status       InstructorRequestStatus @default(PENDING)
+  createdAt    DateTime               @default(now())
+  reviewedById String?
+  reviewedAt   DateTime?
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
 }
 
 model Account {
@@ -135,9 +174,25 @@ model Course {
   enrollments         Enrollment[]
   quizzes             Quiz[]
   certificates        Certificate[]
+  reviews             CourseReview[]
 
   @@index([instructorId])
   @@index([status])
+}
+
+model CourseReview {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  rating    Int      // 1-5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
 }
 
 model Module {
@@ -254,6 +309,7 @@ model Question {
   text          String
   explanation   String?
   type          QuestionType @default(MULTIPLE_CHOICE)
+  metadata      Json?        // type-specific: pairs, cloze parts, numerical correct±tolerance, drag zones/items
   order         Int
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -333,6 +389,17 @@ model Certificate {
   @@unique([userId, courseId])
 }
 
+model CertificateSettings {
+  id              String   @id @default(cuid())
+  templateType    String?  // default, minimal
+  logoUrl         String?
+  signatureUrl    String?
+  verifyUrlFormat String?
+  qrTextField     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   actorId    String?
@@ -344,4 +411,22 @@ model AuditLog {
   actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([targetType, targetId])
+}
+
+enum NotificationTarget {
+  STUDENT
+  INSTRUCTOR
+  ALL
+}
+
+model Notification {
+  id          String             @id @default(cuid())
+  title       String
+  body        String             @db.Text
+  targetRole  NotificationTarget
+  createdAt   DateTime           @default(now())
+  createdById String
+  createdBy   User               @relation("NotificationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([targetRole, createdAt])
 }

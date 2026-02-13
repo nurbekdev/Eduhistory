@@ -11,6 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+const QUESTION_TYPES_OPTION_BASED = ["MULTIPLE_CHOICE", "MULTIPLE_SELECT", "TRUE_FALSE"] as const;
+
+type QuestionPayload = {
+  id: string;
+  text: string;
+  explanation: string | null;
+  type: string;
+  metadata?: unknown;
+  options: Array< { id: string; text: string } >;
+};
+
 type AttemptPayload = {
   id: string;
   status: "IN_PROGRESS" | "PASSED" | "FAILED" | "SUBMITTED";
@@ -18,7 +29,6 @@ type AttemptPayload = {
   startedAt: string;
   submittedAt: string | null;
   scorePercent: number;
-  /** Server-computed so client/server time drift doesn't end quiz immediately */
   remainingSeconds?: number;
   quiz: {
     id: string;
@@ -28,20 +38,8 @@ type AttemptPayload = {
     passingScore: number;
     attemptLimit: number;
     timeLimitMinutes: number;
-    course: {
-      id: string;
-      title: string;
-    };
-    questions: Array<{
-      id: string;
-      text: string;
-      explanation: string | null;
-      type: "MULTIPLE_CHOICE" | "MULTIPLE_SELECT";
-      options: Array<{
-        id: string;
-        text: string;
-      }>;
-    }>;
+    course: { id: string; title: string };
+    questions: QuestionPayload[];
   };
 };
 
@@ -82,7 +80,7 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
 
   const draftKey = `quiz-draft:${attemptId}`;
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string[]>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string[] | Record<string, unknown>>>({});
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -93,7 +91,18 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
   const autoSubmittedRef = useRef(false);
 
   const questions = query.data?.quiz.questions ?? [];
-  const answeredCount = questions.filter((question) => (selectedAnswers[question.id] ?? []).length > 0).length;
+
+  function isAnswered(question: QuestionPayload, value: string[] | Record<string, unknown> | undefined): boolean {
+    if (value === undefined) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (QUESTION_TYPES_OPTION_BASED.includes(question.type as (typeof QUESTION_TYPES_OPTION_BASED)[number])) return false;
+    if (question.type === "NUMERICAL") return typeof (value as { number?: number }).number === "number" && Number.isFinite((value as { number: number }).number);
+    if (question.type === "MATCHING") return Array.isArray((value as { pairs?: unknown }).pairs) && (value as { pairs: unknown[] }).pairs.length > 0;
+    if (question.type === "CLOZE") return Array.isArray((value as { blanks?: unknown }).blanks);
+    return false;
+  }
+
+  const answeredCount = questions.filter((q) => isAnswered(q, selectedAnswers[q.id])).length;
 
   const isInProgress = query.data?.status === "IN_PROGRESS" && !submittedResult;
 
@@ -103,7 +112,7 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
     try {
       const raw = window.localStorage.getItem(draftKey);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as { answers?: Record<string, string[]> };
+      const parsed = JSON.parse(raw) as { answers?: Record<string, string[] | Record<string, unknown>> };
       if (parsed.answers) {
         setSelectedAnswers(parsed.answers);
         toast.success("Quiz qoralamasi tiklandi.");
@@ -184,15 +193,37 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
     });
   };
 
+  const buildAnswerPayload = (question: QuestionPayload, raw: string[] | Record<string, unknown> | undefined) => {
+    if (raw === undefined) {
+      return QUESTION_TYPES_OPTION_BASED.includes(question.type as (typeof QUESTION_TYPES_OPTION_BASED)[number]) ? [] : {};
+    }
+    if (Array.isArray(raw)) return raw;
+    if (question.type === "MATCHING") {
+      const meta = (question.metadata ?? {}) as { pairs?: { left: string; right: string }[] };
+      const pairs = meta.pairs ?? [];
+      const idxPairs = (raw as { pairs?: { leftIndex: number; rightIndex: number }[] }).pairs ?? [];
+      return {
+        pairs: idxPairs.map((p) => ({
+          left: pairs[p.leftIndex]?.left ?? "",
+          right: pairs[p.rightIndex]?.right ?? "",
+        })),
+      };
+    }
+    return raw;
+  };
+
   const onSubmit = async (auto = false) => {
     if (!query.data || submitting) return;
     setSubmitting(true);
     const payload = {
       attemptId: query.data.id,
-      answers: query.data.quiz.questions.map((question) => ({
-        questionId: question.id,
-        selectedOptionIds: selectedAnswers[question.id] ?? [],
-      })),
+      answers: query.data.quiz.questions.map((question) => {
+        const raw = selectedAnswers[question.id];
+        return {
+          questionId: question.id,
+          selectedOptionIds: buildAnswerPayload(question, raw),
+        };
+      }),
     };
 
     const response = await fetch("/api/quiz/submit", {
@@ -293,19 +324,19 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
           </CardHeader>
           <CardContent className="space-y-2">
             {questions.map((question, index) => {
-              const answered = (selectedAnswers[question.id] ?? []).length > 0;
+              const answered = isAnswered(question, selectedAnswers[question.id]);
               const active = index === currentQuestionIndex;
               return (
                 <button
                   key={question.id}
                   type="button"
                   onClick={() => setCurrentQuestionIndex(index)}
-                  className={`w-full rounded-md border px-3 py-2 text-left text-sm transition ${
+                  className={`w-full rounded-md border px-3 py-2 text-left text-sm transition dark:border-slate-700 dark:bg-slate-800/50 ${
                     active
-                      ? "border-emerald-500 bg-emerald-50"
+                      ? "border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-900/30"
                       : answered
-                        ? "border-emerald-200 bg-emerald-50/60"
-                        : "border-zinc-200 bg-white hover:bg-zinc-50"
+                        ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-900/20"
+                        : "border-zinc-200 bg-white hover:bg-zinc-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   Savol {index + 1}
@@ -320,22 +351,125 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
             <CardTitle>{currentQuestionIndex + 1}. {activeQuestion?.text}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              {activeQuestion?.options.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => toggleOption(activeQuestion.id, option.id, activeQuestion.type)}
-                  className={`w-full rounded-md border px-3 py-3 text-left text-sm transition ${
-                    (selectedAnswers[activeQuestion.id] ?? []).includes(option.id)
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-zinc-200 bg-white hover:bg-zinc-50"
-                  }`}
-                >
-                  <span>{option.text}</span>
-                </button>
-              ))}
-            </div>
+            {activeQuestion && QUESTION_TYPES_OPTION_BASED.includes(activeQuestion.type as (typeof QUESTION_TYPES_OPTION_BASED)[number]) && (
+              <div className="space-y-2">
+                {(activeQuestion.options ?? []).map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => toggleOption(activeQuestion.id, option.id, activeQuestion.type as "MULTIPLE_CHOICE" | "MULTIPLE_SELECT")}
+                    className={`w-full rounded-md border px-3 py-3 text-left text-sm transition dark:border-slate-600 dark:bg-slate-800/50 ${
+                      (selectedAnswers[activeQuestion.id] as string[] | undefined)?.includes(option.id)
+                        ? "border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/30"
+                        : "border-zinc-200 bg-white hover:bg-zinc-50 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    <span>{option.text}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeQuestion?.type === "NUMERICAL" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium dark:text-slate-300">Raqamli javob</label>
+                <input
+                  type="number"
+                  step="any"
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  value={(selectedAnswers[activeQuestion.id] as { number?: number } | undefined)?.number ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value === "" ? undefined : Number(e.target.value);
+                    setSelectedAnswers((prev) => ({
+                      ...prev,
+                      [activeQuestion.id]: { number: v },
+                    }));
+                  }}
+                />
+              </div>
+            )}
+
+            {activeQuestion?.type === "MATCHING" && (() => {
+              const meta = (activeQuestion.metadata ?? {}) as { pairs?: { left: string; right: string }[] };
+              const pairs = meta.pairs ?? [];
+              const current = (selectedAnswers[activeQuestion.id] as { pairs?: { leftIndex: number; rightIndex: number }[] } | undefined)?.pairs ?? [];
+              return (
+                <div className="space-y-3">
+                  <p className="text-xs text-zinc-500 dark:text-slate-400">Chap elementni o'ng bilan moslashtiring.</p>
+                  <div className="space-y-2">
+                    {pairs.map((pair, leftIndex) => (
+                      <div key={leftIndex} className="flex items-center gap-2">
+                        <span className="min-w-[120px] rounded border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800">
+                          {pair.left || "—"}
+                        </span>
+                        <select
+                          className="rounded border border-zinc-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                          value={current.find((p) => p.leftIndex === leftIndex)?.rightIndex ?? ""}
+                          onChange={(e) => {
+                            const rightIndex = e.target.value === "" ? -1 : Number(e.target.value);
+                            setSelectedAnswers((prev) => {
+                              const prevPairs = (prev[activeQuestion.id] as { pairs?: { leftIndex: number; rightIndex: number }[] } | undefined)?.pairs ?? [];
+                              const next = prevPairs.filter((p) => p.leftIndex !== leftIndex);
+                              if (rightIndex >= 0) next.push({ leftIndex, rightIndex });
+                              return { ...prev, [activeQuestion.id]: { pairs: next } };
+                            });
+                          }}
+                        >
+                          <option value="">Tanlang</option>
+                          {pairs.map((p, ri) => (
+                            <option key={ri} value={ri}>
+                              {p.right || "—"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {activeQuestion?.type === "CLOZE" && (() => {
+              const meta = (activeQuestion.metadata ?? {}) as { parts?: { type: string; value: string }[] };
+              const parts = meta.parts ?? [];
+              const blankIndexes = parts.map((p, i) => (p.type === "blank" ? i : -1)).filter((i) => i >= 0);
+              const currentBlanks = (selectedAnswers[activeQuestion.id] as { blanks?: string[] } | undefined)?.blanks ?? [];
+              return (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-baseline gap-1 text-sm">
+                    {parts.map((part, index) =>
+                      part.type === "blank" ? (
+                        <input
+                          key={index}
+                          type="text"
+                          className="w-24 rounded border border-zinc-300 px-2 py-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                          placeholder="..."
+                          value={currentBlanks[blankIndexes.indexOf(index)] ?? ""}
+                          onChange={(e) => {
+                            const idx = blankIndexes.indexOf(index);
+                            setSelectedAnswers((prev) => {
+                              const prevBlanks = (prev[activeQuestion.id] as { blanks?: string[] } | undefined)?.blanks ?? [];
+                              const next = [...prevBlanks];
+                              while (next.length <= idx) next.push("");
+                              next[idx] = e.target.value;
+                              return { ...prev, [activeQuestion.id]: { blanks: next } };
+                            });
+                          }}
+                        />
+                      ) : (
+                        <span key={index}>{part.value}</span>
+                      )
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {(activeQuestion?.type === "DRAG_DROP_IMAGE" || activeQuestion?.type === "DRAG_DROP_TEXT") && (
+              <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+                Ushbu savol turi hozircha sinov rejimida. Keyingi yangilanishda to'liq qo'llab-quvvatlanadi.
+              </p>
+            )}
 
             {activeQuestion?.explanation ? (
               <div className="rounded-md border bg-zinc-50 p-3 text-xs text-zinc-600">

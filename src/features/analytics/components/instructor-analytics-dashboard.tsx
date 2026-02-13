@@ -16,7 +16,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { BookOpenCheck, GraduationCap, LineChart as LineChartIcon, Medal, Users } from "lucide-react";
+import { BookOpenCheck, GraduationCap, LineChart as LineChartIcon, Medal, MessageSquare, Star, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,51 +33,56 @@ type CourseMetric = {
   completionRate: number;
   averageQuizScore: number;
   finalPassRate: number;
+  averageRating: number | null;
+  reviewCount: number;
 };
 
 type AnalyticsResponse = {
   courses: CourseMetric[];
   selectedCourseId: string | null;
-  selectedCourse: {
-    id: string;
-    title: string;
-    category: string;
-    lessonDropOff: Array<{
-      lessonId: string;
-      lessonTitle: string;
-      moduleTitle: string;
-      order: number;
-      started: number;
-      completed: number;
-      dropOffRate: number;
-    }>;
-    studentsTable: Array<{
-      userId: string;
-      fullName: string;
-      email: string;
-      status: string;
-      progressPercent: number;
-      attemptsCount: number;
-      averageScore: number;
-      currentLessonTitle: string;
-    }>;
-    attemptsTrend: Array<{
-      date: string;
-      attempts: number;
-      averageScore: number;
-    }>;
-    weeklyCohortComparison: {
-      lessons: Array<{
+    selectedCourse: {
+      id: string;
+      title: string;
+      category: string;
+      lessonDropOff: Array<{
         lessonId: string;
         lessonTitle: string;
+        moduleTitle: string;
+        order: number;
+        started: number;
+        completed: number;
+        dropOffRate: number;
       }>;
-      rows: Array<
-        {
-          week: string;
-        } & Record<string, number | string>
-      >;
-    };
-  } | null;
+      studentsTable: Array<{
+        userId: string;
+        fullName: string;
+        email: string;
+        status: string;
+        progressPercent: number;
+        attemptsCount: number;
+        averageScore: number;
+        currentLessonTitle: string;
+      }>;
+      attemptsTrend: Array<{
+        date: string;
+        attempts: number;
+        averageScore: number;
+      }>;
+      weeklyCohortComparison: {
+        lessons: Array<{ lessonId: string; lessonTitle: string }>;
+        rows: Array<{ week: string } & Record<string, number | string>>;
+      };
+      averageRating: number | null;
+      totalReviews: number;
+      recentReviews: Array<{
+        id: string;
+        rating: number;
+        comment: string | null;
+        createdAt: string;
+        userName: string;
+      }>;
+      insights: string[];
+    } | null;
 };
 
 async function fetchAnalytics(selectedCourseId: string | null): Promise<AnalyticsResponse> {
@@ -157,55 +162,125 @@ export function InstructorAnalyticsDashboard() {
         </CardHeader>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="bg-white">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <Card className="bg-white dark:bg-slate-800">
           <CardHeader className="pb-2">
-            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
               <Users className="size-4" />
             </div>
-            <CardTitle className="text-sm text-slate-500">Talabalar</CardTitle>
+            <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Talabalar</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{selectedCourseMetric.enrolledCount}</CardContent>
+          <CardContent className="text-2xl font-bold dark:text-slate-100">{selectedCourseMetric.enrolledCount}</CardContent>
         </Card>
-        <Card className="bg-white">
+        <Card className="bg-white dark:bg-slate-800">
           <CardHeader className="pb-2">
-            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
               <BookOpenCheck className="size-4" />
             </div>
-            <CardTitle className="text-sm text-slate-500">Completion</CardTitle>
+            <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Completion</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{selectedCourseMetric.completionRate}%</CardContent>
+          <CardContent className="text-2xl font-bold dark:text-slate-100">{selectedCourseMetric.completionRate}%</CardContent>
         </Card>
-        <Card className="bg-white">
+        <Card className="bg-white dark:bg-slate-800">
           <CardHeader className="pb-2">
-            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
               <LineChartIcon className="size-4" />
             </div>
-            <CardTitle className="text-sm text-slate-500">Quiz o'rtacha ball</CardTitle>
+            <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Quiz o'rtacha ball</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{selectedCourseMetric.averageQuizScore}%</CardContent>
+          <CardContent className="text-2xl font-bold dark:text-slate-100">{selectedCourseMetric.averageQuizScore}%</CardContent>
         </Card>
-        <Card className="bg-white">
+        <Card className="bg-white dark:bg-slate-800">
           <CardHeader className="pb-2">
-            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
               <Medal className="size-4" />
             </div>
-            <CardTitle className="text-sm text-slate-500">Final pass rate</CardTitle>
+            <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Final pass rate</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{selectedCourseMetric.finalPassRate}%</CardContent>
+          <CardContent className="text-2xl font-bold dark:text-slate-100">{selectedCourseMetric.finalPassRate}%</CardContent>
         </Card>
-        <Card className="bg-white">
+        <Card className="bg-white dark:bg-slate-800">
           <CardHeader className="pb-2">
-            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
               <GraduationCap className="size-4" />
             </div>
-            <CardTitle className="text-sm text-slate-500">Dars / quiz</CardTitle>
+            <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Dars / quiz</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">
+          <CardContent className="text-2xl font-bold dark:text-slate-100">
             {selectedCourseMetric.totalLessons}/{selectedCourseMetric.totalQuizzes}
           </CardContent>
         </Card>
+        <Card className="bg-white dark:bg-slate-800">
+          <CardHeader className="pb-2">
+            <div className="mb-2 inline-flex size-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+              <Star className="size-4" />
+            </div>
+            <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Reyting</CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-bold dark:text-slate-100">
+            {selectedCourseMetric.averageRating != null
+              ? `${selectedCourseMetric.averageRating.toFixed(1)} (${selectedCourseMetric.reviewCount})`
+              : "—"}
+          </CardContent>
+        </Card>
       </div>
+
+      {selectedCourse.insights && selectedCourse.insights.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+              <MessageSquare className="size-5" />
+              Xulosalar
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-inside list-disc space-y-2 text-sm text-amber-900 dark:text-amber-100">
+              {selectedCourse.insights.map((text, i) => (
+                <li key={i}>{text}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {(selectedCourse.totalReviews > 0 || selectedCourse.recentReviews.length > 0) && (
+        <Card className="dark:bg-slate-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 dark:text-slate-100">
+              <Star className="size-5" />
+              Kurs reytingi va talabalar fikrlari
+            </CardTitle>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              O'rtacha {selectedCourse.averageRating?.toFixed(1) ?? "—"} yulduz, {selectedCourse.totalReviews} ta baho
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {selectedCourse.recentReviews.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">Hozircha izohlar yo'q.</p>
+            ) : (
+              selectedCourse.recentReviews.map((r) => (
+                <div
+                  key={r.id}
+                  className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/50"
+                >
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{r.userName}</span>
+                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                      {r.rating} <Star className="size-4 fill-current" />
+                    </span>
+                  </div>
+                  {r.comment && (
+                    <p className="text-sm text-slate-600 dark:text-slate-300">{r.comment}</p>
+                  )}
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                    {new Date(r.createdAt).toLocaleDateString("uz-UZ")}
+                  </p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

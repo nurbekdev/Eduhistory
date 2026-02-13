@@ -246,11 +246,12 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
               ) : null}
 
               {activeLesson.content ? (
-                <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-                  <p className="text-sm font-medium text-slate-600">Dars matni</p>
-                  <div className="mt-3 text-base leading-relaxed text-slate-800 whitespace-pre-wrap">
-                    {activeLesson.content}
-                  </div>
+                <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Dars matni</p>
+                  <div
+                    className="lesson-content mt-3 text-base leading-relaxed text-slate-800 dark:text-slate-200 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_blockquote]:italic [&_a]:text-emerald-600 [&_a]:underline [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
+                    dangerouslySetInnerHTML={{ __html: activeLesson.content }}
+                  />
                 </div>
               ) : null}
             </CardContent>

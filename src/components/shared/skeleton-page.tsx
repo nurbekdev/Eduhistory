@@ -17,11 +17,11 @@ export function SkeletonPage({ title, description, tag = "Skeleton", items }: Sk
       <SectionTitle title={title} description={description} />
       <div className="grid gap-4 md:grid-cols-2">
         {items.map((item) => (
-          <Card key={item}>
+          <Card key={item} className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
             <CardHeader>
-              <CardTitle className="text-base">{item}</CardTitle>
+              <CardTitle className="text-base text-slate-900 dark:text-slate-100">{item}</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-zinc-600">
+            <CardContent className="text-sm text-slate-600 dark:text-slate-400">
               Bu bo'lim keyingi bosqichda to'liq funksional holatga keltiriladi.
             </CardContent>
           </Card>

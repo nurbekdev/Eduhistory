@@ -12,6 +12,7 @@ const registerSchema = z
     email: z.string().email("Email noto'g'ri kiritilgan"),
     password: z.string().min(8, "Parol kamida 8 ta belgidan iborat bo'lishi kerak"),
     confirmPassword: z.string(),
+    wantInstructor: z.boolean().optional().default(false),
   })
   .refine((data) => data.password === data.confirmPassword, {
     path: ["confirmPassword"],
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       fullName: parsed.data.fullName,
       email: parsed.data.email,
@@ -52,5 +53,18 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ message: "Hisob muvaffaqiyatli yaratildi." }, { status: 201 });
+  if (parsed.data.wantInstructor) {
+    await prisma.instructorRequest.create({
+      data: {
+        userId: user.id,
+        status: "PENDING",
+      },
+    });
+  }
+
+  return NextResponse.json({
+    message: parsed.data.wantInstructor
+      ? "Hisob yaratildi. Ustoz bo'lish so'rovingiz admin tasdiqlashini kutyapti."
+      : "Hisob muvaffaqiyatli yaratildi.",
+  }, { status: 201 });
 }

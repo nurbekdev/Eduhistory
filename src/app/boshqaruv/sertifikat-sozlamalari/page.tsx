@@ -1,12 +1,29 @@
-import { SkeletonPage } from "@/components/shared/skeleton-page";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { Role } from "@prisma/client";
 
-export default function CertificateSettingsPage() {
+import { PageContainer } from "@/components/layout/page-container";
+import { SectionTitle } from "@/components/shared/section-title";
+import { Badge } from "@/components/ui/badge";
+import { authOptions } from "@/lib/auth";
+import { CertificateSettingsForm } from "@/features/boshqaruv/components/certificate-settings-form";
+
+export default async function SertifikatSozlamalariPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || (session.user.role !== Role.ADMIN && session.user.role !== Role.INSTRUCTOR)) {
+    redirect("/dashboard");
+  }
+
   return (
-    <SkeletonPage
-      tag="Sertifikat"
-      title="Sertifikat sozlamalari"
-      description="PDF shablon, imzo maydoni, verify URL format va branding sozlamalari."
-      items={["Shablon tanlash", "Imzo va logo", "Verify URL qoidasi", "QR matn maydoni"]}
-    />
+    <PageContainer className="p-6">
+      <Badge className="mb-4 w-fit border-emerald-200 dark:border-emerald-800 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+        Sertifikat
+      </Badge>
+      <SectionTitle
+        title="Sertifikat sozlamalari"
+        description="PDF shablon, imzo maydoni, verify URL format va branding sozlamalari."
+      />
+      <CertificateSettingsForm />
+    </PageContainer>
   );
 }

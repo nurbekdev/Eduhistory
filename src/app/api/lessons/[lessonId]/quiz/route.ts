@@ -6,25 +6,25 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const optionSchema = z.object({
+  text: z.string().min(1),
+  isCorrect: z.boolean(),
+});
+
 const quizBuilderSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
   passingScore: z.number().int().min(1).max(100),
   attemptLimit: z.number().int().min(1).max(10),
+  timeLimitMinutes: z.number().int().min(0).max(300).optional().nullable(),
   questions: z
     .array(
       z.object({
         text: z.string().min(5),
         explanation: z.string().optional(),
         type: z.nativeEnum(QuestionType),
-        options: z
-          .array(
-            z.object({
-              text: z.string().min(1),
-              isCorrect: z.boolean(),
-            }),
-          )
-          .min(2),
+        metadata: z.record(z.unknown()).optional().nullable(),
+        options: z.array(optionSchema).optional().default([]),
       }),
     )
     .min(1),
@@ -69,16 +69,41 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json({ message: issueMessage }, { status: 400 });
   }
 
-  const invalidQuestion = parsed.data.questions.find((question) => {
-    const correctCount = question.options.filter((option) => option.isCorrect).length;
-    if (question.type === QuestionType.MULTIPLE_CHOICE) return correctCount !== 1;
-    return correctCount < 1;
-  });
-  if (invalidQuestion) {
-    return NextResponse.json(
-      { message: "Savol variantlarida kamida bitta to'g'ri javob bo'lishi kerak." },
-      { status: 400 },
-    );
+  const optionBasedTypes = [
+    QuestionType.MULTIPLE_CHOICE,
+    QuestionType.MULTIPLE_SELECT,
+    QuestionType.TRUE_FALSE,
+  ];
+  for (let i = 0; i < parsed.data.questions.length; i++) {
+    const q = parsed.data.questions[i];
+    if (optionBasedTypes.includes(q.type)) {
+      const needOptions = q.type === QuestionType.TRUE_FALSE ? 2 : 2;
+      if (!q.options || q.options.length < needOptions) {
+        return NextResponse.json(
+          { message: `Savol #${i + 1}: variantlar kamida ${needOptions} ta bo'lishi kerak.` },
+          { status: 400 },
+        );
+      }
+      const correctCount = q.options.filter((o) => o.isCorrect).length;
+      if (q.type === QuestionType.MULTIPLE_CHOICE && correctCount !== 1) {
+        return NextResponse.json(
+          { message: `Savol #${i + 1} (bitta javob): aniq 1 ta to'g'ri javob bo'lishi kerak.` },
+          { status: 400 },
+        );
+      }
+      if (q.type === QuestionType.MULTIPLE_SELECT && correctCount < 1) {
+        return NextResponse.json(
+          { message: `Savol #${i + 1} (ko'p javob): kamida 1 ta to'g'ri javob bo'lishi kerak.` },
+          { status: 400 },
+        );
+      }
+      if (q.type === QuestionType.TRUE_FALSE && correctCount !== 1) {
+        return NextResponse.json(
+          { message: `Savol #${i + 1} (to'g'ri/noto'g'ri): bitta to'g'ri javob belgilang.` },
+          { status: 400 },
+        );
+      }
+    }
   }
 
   const quiz = await prisma.$transaction(async (tx) => {
@@ -93,6 +118,7 @@ export async function PUT(request: Request, context: RouteContext) {
           description: parsed.data.description,
           passingScore: parsed.data.passingScore,
           attemptLimit: parsed.data.attemptLimit,
+          timeLimitMinutes: parsed.data.timeLimitMinutes ?? undefined,
         },
       }));
 
@@ -116,14 +142,16 @@ export async function PUT(request: Request, context: RouteContext) {
         description: parsed.data.description,
         passingScore: parsed.data.passingScore,
         attemptLimit: parsed.data.attemptLimit,
+        timeLimitMinutes: parsed.data.timeLimitMinutes ?? undefined,
         questions: {
           create: parsed.data.questions.map((question, questionIndex) => ({
             text: question.text,
             explanation: question.explanation,
             type: question.type,
+            metadata: question.metadata ?? undefined,
             order: questionIndex + 1,
             options: {
-              create: question.options.map((option, optionIndex) => ({
+              create: (question.options ?? []).map((option, optionIndex) => ({
                 text: option.text,
                 isCorrect: option.isCorrect,
                 order: optionIndex + 1,

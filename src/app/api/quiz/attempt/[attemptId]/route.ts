@@ -81,6 +81,7 @@ export async function GET(_request: Request, context: RouteContext) {
         text: question.text,
         explanation: question.explanation,
         type: question.type,
+        metadata: question.metadata ?? undefined,
         options: question.options.map((option) => ({
           id: option.id,
           text: option.text,
