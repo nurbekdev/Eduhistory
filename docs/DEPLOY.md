@@ -87,24 +87,22 @@ Saqlang: `Ctrl+O`, `Enter`, `Ctrl+X`.
 
 Domen **eduhistory.uz** ni server IP **157.245.231.33** ga yo‘naltiring (A yozuv). Keyin:
 
+**Birinchi marta** faqat HTTP (80-port) config ishlatiladi — SSL fayllari hali yo‘q. Certbot keyin SSL qo‘shadi.
+
 ```bash
-# Nginx config: loyiha ichidagi nginx configni nusxalang
-cp /var/www/eduhistory/eduhistory-app/nginx/eduhistory.uz.conf /etc/nginx/sites-available/eduhistory.uz
-ln -s /etc/nginx/sites-available/eduhistory.uz /etc/nginx/sites-enabled/
-nginx -t
+# Nginx configni nusxalang (loyiha /var/www/Eduhistory da bo‘lsa)
+cp /var/www/Eduhistory/nginx/eduhistory.uz.conf /etc/nginx/sites-available/eduhistory.uz
+ln -sf /etc/nginx/sites-available/eduhistory.uz /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
 ```
 
-Avval SSL sertifikatini oling (domen serverga ishlagan bo‘lishi kerak):
+So‘ng **certbot** orqali SSL oling (domen serverga yo‘naltirilgan bo‘lishi kerak):
 
 ```bash
 certbot --nginx -d eduhistory.uz -d www.eduhistory.uz
 ```
 
-Keyin Nginx ni qayta yuklang:
-
-```bash
-systemctl reload nginx
-```
+Certbot configni o‘zi o‘zgartirib, HTTPS qo‘shadi. Qayta reload kerak bo‘lmasa ham certbot nginx ni reload qiladi.
 
 ### 1.7 Birinchi marta Docker orqali ishga tushirish
 
@@ -205,7 +203,25 @@ docker compose -f docker-compose.prod.yml up -d
 
 ---
 
-## 5. Xavfsizlik
+## 5. Nginx / SSL xatolik bo‘lsa
+
+**Xato:** `open() "/etc/letsencrypt/options-ssl-nginx.conf" failed`
+
+Sabab: configda SSL (443) bloki bor, lekin certbot hali ishlamagan — bu fayllar yo‘q.
+
+**Yechim:** Avval faqat HTTP (80) ishlaydigan config ishlating. Repodagi `nginx/eduhistory.uz.conf` endi shunday. Serverda yangilang:
+
+```bash
+cp /var/www/Eduhistory/nginx/eduhistory.uz.conf /etc/nginx/sites-available/eduhistory.uz
+nginx -t && systemctl reload nginx
+certbot --nginx -d eduhistory.uz -d www.eduhistory.uz
+```
+
+Agar repoda eski config qolgan bo‘lsa, `git pull` qilib keyin yuqoridagi `cp` ni qayta ishlating.
+
+---
+
+## 6. Xavfsizlik
 
 - `.env` ni hech qachon git’ga commit qilmang.
 - `NEXTAUTH_SECRET` va `POSTGRES_PASSWORD` ni kuchli va tashlab ketilmasdan saqlang.
