@@ -23,7 +23,7 @@ const finalQuizSchema = z.object({
         text: z.string().min(5),
         explanation: z.string().optional(),
         type: z.nativeEnum(QuestionType),
-        metadata: z.record(z.unknown()).optional().nullable(),
+        metadata: z.record(z.string(), z.unknown()).optional().nullable(),
         options: z.array(optionSchema).optional().default([]),
       }),
     )
