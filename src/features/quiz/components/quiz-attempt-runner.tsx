@@ -235,7 +235,13 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
     });
     setSubmitting(false);
 
-    const body = (await response.json()) as SubmitResponse & { message?: string };
+    const text = await response.text();
+    let body: SubmitResponse & { message?: string };
+    try {
+      body = text ? (JSON.parse(text) as SubmitResponse & { message?: string }) : ({} as SubmitResponse & { message?: string });
+    } catch {
+      body = {} as SubmitResponse & { message?: string };
+    }
     if (!response.ok) {
       toast.error(body.message ?? "Quizni yakunlashda xatolik yuz berdi.");
       return;

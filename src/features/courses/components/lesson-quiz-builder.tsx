@@ -191,11 +191,48 @@ export function LessonQuizBuilder({
     let payload: QuizData;
     try {
       const normalizedQuestions = quiz.questions.map((question, questionIndex) => {
-        const text = question.text.trim();
+        let text = question.text.trim();
         const explanation = (question.explanation ?? "").trim();
+        const meta = question.metadata as Record<string, unknown> | undefined;
 
-        if (text.length < 5) {
-          throw new Error(`Savol #${questionIndex + 1} matni kamida 5 ta belgi bo'lishi kerak.`);
+        if (question.type === "CLOZE") {
+          const parts = (meta?.parts as { type: string; value: string }[] | undefined) ?? [];
+          const hasBlank = parts.some((p) => p.type === "blank");
+          if (!hasBlank) {
+            throw new Error(`Savol #${questionIndex + 1} (bo'sh joyni to'ldirish): matnda kamida bitta [[javob]] bo'shliq bo'lishi kerak.`);
+          }
+          if (text.length < 1) text = "Quyidagi bo'shliqlarni to'ldiring.";
+        } else if (question.type === "MATCHING") {
+          const pairs = (meta?.pairs as { left: string; right: string }[] | undefined) ?? [];
+          const filled = pairs.filter((p) => p.left.trim() && p.right.trim());
+          if (filled.length < 1) {
+            throw new Error(`Savol #${questionIndex + 1} (juftlik): kamida bitta to'ldirilgan juftlik bo'lishi kerak.`);
+          }
+          if (text.length < 5) text = "Chap va o'ng ustunlarni moslashtiring.";
+        } else if (question.type === "NUMERICAL") {
+          const correct = Number((meta?.correct as number | undefined) ?? 0);
+          const tolerance = Number((meta?.tolerance as number | undefined) ?? 0);
+          if (!Number.isFinite(correct) || !Number.isFinite(tolerance) || tolerance < 0) {
+            throw new Error(`Savol #${questionIndex + 1} (raqamli): to'g'ri javob va ruxsat (±) raqam bo'lishi kerak.`);
+          }
+          if (text.length < 5) text = "To'g'ri raqamni yozing.";
+        } else if (question.type === "DRAG_DROP_IMAGE") {
+          const imageUrl = (meta?.imageUrl as string) ?? "";
+          const zones = (meta?.zones as { id: string; label: string }[]) ?? [];
+          const items = (meta?.items as { id: string; text: string; correctZoneId: string }[]) ?? [];
+          if (!imageUrl.trim()) throw new Error(`Savol #${questionIndex + 1} (sürükle-rasm): rasm URL kiritilishi kerak.`);
+          if (zones.filter((z) => z.id?.trim()).length < 1) throw new Error(`Savol #${questionIndex + 1} (sürükle-rasm): kamida bitta zona bo'lishi kerak.`);
+          if (text.length < 5) text = "Rasmdagi zonalarga variantlarni torting.";
+        } else if (question.type === "DRAG_DROP_TEXT") {
+          const textWithBlanks = (meta?.textWithBlanks as string) ?? "";
+          const items = (meta?.items as { id: string; text: string; correctDropId: string }[]) ?? [];
+          if (!textWithBlanks.includes("[[")) throw new Error(`Savol #${questionIndex + 1} (sürükle-matn): matnda [[zoneId]] bo'shliqlar bo'lishi kerak.`);
+          if (items.filter((i) => i.text?.trim() && i.correctDropId).length < 1) throw new Error(`Savol #${questionIndex + 1} (sürükle-matn): kamida bitta to'g'ri variant bo'lishi kerak.`);
+          if (text.length < 5) text = "Variantlarni bo'shliqlarga torting.";
+        } else if (!OPTION_BASED_TYPES.includes(question.type)) {
+          if (text.length < 5) {
+            throw new Error(`Savol #${questionIndex + 1} matni kamida 5 ta belgi bo'lishi kerak.`);
+          }
         }
 
         if (OPTION_BASED_TYPES.includes(question.type)) {
@@ -216,7 +253,14 @@ export function LessonQuizBuilder({
           if (question.type === "TRUE_FALSE" && correctCount !== 1) {
             throw new Error(`Savol #${questionIndex + 1} (to'g'ri/noto'g'ri) uchun bitta to'g'ri javob belgilang.`);
           }
+          if (text.length < 5) text = question.text.trim() || "Savol matni";
           return { ...question, text, explanation, options, metadata: undefined };
+        }
+
+        if (question.type === "NUMERICAL" && meta) {
+          const correct = Number(meta.correct ?? 0);
+          const tolerance = Number(meta.tolerance ?? 0);
+          question.metadata = { ...meta, correct: Number.isFinite(correct) ? correct : 0, tolerance: Number.isFinite(tolerance) && tolerance >= 0 ? tolerance : 0 };
         }
 
         return {
@@ -249,8 +293,17 @@ export function LessonQuizBuilder({
     setSaving(false);
 
     if (!response.ok) {
-      const body = (await response.json()) as { message?: string };
-      toast.error(body.message ?? "Quizni saqlashda xatolik yuz berdi.");
+      let message = "Quizni saqlashda xatolik yuz berdi.";
+      try {
+        const text = await response.text();
+        if (text) {
+          const body = JSON.parse(text) as { message?: string };
+          if (body.message) message = body.message;
+        }
+      } catch {
+        // ignore parse error, use default message
+      }
+      toast.error(message);
       return;
     }
 
@@ -440,67 +493,82 @@ export function LessonQuizBuilder({
                   )}
 
                   {question.type === "MATCHING" && (
-                    <div className="space-y-2">
-                      <label className="text-xs text-slate-500 dark:text-slate-400">Juftliklar (chap | o'ng)</label>
-                      {((question.metadata as { pairs?: { left: string; right: string }[] })?.pairs ?? [{ left: "", right: "" }]).map(
-                        (pair, pairIndex) => (
-                          <div key={pairIndex} className="flex gap-2">
-                            <Input
-                              placeholder="Chap"
-                              value={pair.left}
-                              onChange={(e) => {
-                                const pairs = [...((question.metadata as { pairs?: { left: string; right: string }[] })?.pairs ?? [{ left: "", right: "" }])];
-                                pairs[pairIndex] = { ...pairs[pairIndex], left: e.target.value };
-                                updateMetadata(questionIndex, { pairs });
-                              }}
-                            />
-                            <Input
-                              placeholder="O'ng"
-                              value={pair.right}
-                              onChange={(e) => {
-                                const pairs = [...((question.metadata as { pairs?: { left: string; right: string }[] })?.pairs ?? [{ left: "", right: "" }])];
-                                pairs[pairIndex] = { ...pairs[pairIndex], right: e.target.value };
-                                updateMetadata(questionIndex, { pairs });
-                              }}
-                            />
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                const pairs = ((question.metadata as { pairs?: { left: string; right: string }[] })?.pairs ?? []).filter(
-                                  (_, i) => i !== pairIndex
-                                );
-                                updateMetadata(questionIndex, { pairs: pairs.length ? pairs : [{ left: "", right: "" }] });
-                              }}
-                            >
-                              –
-                            </Button>
-                          </div>
-                        )
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const pairs = [...((question.metadata as { pairs?: { left: string; right: string }[] })?.pairs ?? []), { left: "", right: "" }];
-                          updateMetadata(questionIndex, { pairs });
-                        }}
-                      >
-                        + Juftlik qo'shish
-                      </Button>
+                    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3 dark:border-slate-600 dark:bg-slate-800/30">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Juftliklar (chap ↔ o'ng)</label>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Talaba chap va o'ng ustunlarni moslashtiradi.</p>
+                      <div className="space-y-2">
+                        {((question.metadata as { pairs?: { left: string; right: string }[] })?.pairs ?? [{ left: "", right: "" }]).map(
+                          (pair, pairIndex) => (
+                            <div key={pairIndex} className="flex items-center gap-2">
+                              <Input
+                                className="flex-1"
+                                placeholder="Chap element"
+                                value={pair.left}
+                                onChange={(e) => {
+                                  const pairs = [...((question.metadata as { pairs?: { left: string; right: string }[] })?.pairs ?? [{ left: "", right: "" }])];
+                                  pairs[pairIndex] = { ...pairs[pairIndex], left: e.target.value };
+                                  updateMetadata(questionIndex, { pairs });
+                                }}
+                              />
+                              <span className="text-slate-400">↔</span>
+                              <Input
+                                className="flex-1"
+                                placeholder="O'ng element"
+                                value={pair.right}
+                                onChange={(e) => {
+                                  const pairs = [...((question.metadata as { pairs?: { left: string; right: string }[] })?.pairs ?? [{ left: "", right: "" }])];
+                                  pairs[pairIndex] = { ...pairs[pairIndex], right: e.target.value };
+                                  updateMetadata(questionIndex, { pairs });
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="shrink-0 text-red-600 hover:text-red-700"
+                                onClick={() => {
+                                  const pairs = ((question.metadata as { pairs?: { left: string; right: string }[] })?.pairs ?? []).filter(
+                                    (_, i) => i !== pairIndex
+                                  );
+                                  updateMetadata(questionIndex, { pairs: pairs.length ? pairs : [{ left: "", right: "" }] });
+                                }}
+                              >
+                                –
+                              </Button>
+                            </div>
+                          )
+                        )}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const pairs = [...((question.metadata as { pairs?: { left: string; right: string }[] })?.pairs ?? []), { left: "", right: "" }];
+                            updateMetadata(questionIndex, { pairs });
+                          }}
+                        >
+                          + Juftlik qo'shish
+                        </Button>
+                      </div>
                     </div>
                   )}
 
                   {question.type === "CLOZE" && (
-                    <div className="space-y-2">
-                      <label className="text-xs text-slate-500 dark:text-slate-400">Matn va bo'shliqlar: [[javob]]</label>
+                    <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/50 p-3 dark:border-slate-600 dark:bg-slate-800/30">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Matn va bo'shliqlar
+                      </label>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Bo'sh joy uchun ikki qavs ichida to'g'ri javobni yozing: [[javob]]. Masalan: Poytaxtimiz [[Toshkent]].
+                      </p>
                       <Textarea
                         placeholder="Masalan: Poytaxtimiz [[Toshkent]]. [[O'zbekiston]] mustaqil davlat."
-                        value={
-                          ((question.metadata as { parts?: { type: string; value: string }[] })?.parts ?? [])
-                            .map((p) => (p.type === "blank" ? `[[${p.value}]]` : p.value))
-                            .join("") || ""
-                        }
+                        className="min-h-[100px] resize-y"
+                        value={(() => {
+                          const parts = (question.metadata as { parts?: { type: string; value: string }[] })?.parts ?? [];
+                          if (!Array.isArray(parts) || parts.length === 0) return "";
+                          return parts.map((p) => (p.type === "blank" ? `[[${p.value ?? ""}]]` : (p.value ?? ""))).join("");
+                        })()}
                         onChange={(e) => {
                           const raw = e.target.value;
                           const parts: { type: "text" | "blank"; value: string }[] = [];
@@ -508,7 +576,7 @@ export function LessonQuizBuilder({
                           while (i < raw.length) {
                             const open = raw.indexOf("[[", i);
                             if (open === -1) {
-                              parts.push({ type: "text", value: raw.slice(i) });
+                              if (raw.slice(i)) parts.push({ type: "text", value: raw.slice(i) });
                               break;
                             }
                             if (open > i) parts.push({ type: "text", value: raw.slice(i, open) });
@@ -517,9 +585,10 @@ export function LessonQuizBuilder({
                               parts.push({ type: "text", value: raw.slice(open) });
                               break;
                             }
-                            parts.push({ type: "blank", value: raw.slice(open + 2, close) });
+                            parts.push({ type: "blank", value: raw.slice(open + 2, close).trim() });
                             i = close + 2;
                           }
+                          if (parts.length === 0) parts.push({ type: "text", value: "" });
                           updateMetadata(questionIndex, { parts });
                         }}
                       />
@@ -527,55 +596,186 @@ export function LessonQuizBuilder({
                   )}
 
                   {question.type === "NUMERICAL" && (
-                    <div className="flex gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs text-slate-500 dark:text-slate-400">To'g'ri javob (raqam)</label>
-                        <Input
-                          type="number"
-                          value={(question.metadata as { correct?: number })?.correct ?? ""}
-                          onChange={(e) =>
-                            updateMetadata(questionIndex, {
-                              ...(question.metadata as object),
-                              correct: Number(e.target.value),
-                              tolerance: (question.metadata as { tolerance?: number })?.tolerance ?? 0,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-slate-500 dark:text-slate-400">Ruxsat (±)</label>
-                        <Input
-                          type="number"
-                          min={0}
-                          value={(question.metadata as { tolerance?: number })?.tolerance ?? ""}
-                          onChange={(e) =>
-                            updateMetadata(questionIndex, {
-                              ...(question.metadata as object),
-                              correct: (question.metadata as { correct?: number })?.correct ?? 0,
-                              tolerance: Number(e.target.value),
-                            })
-                          }
-                        />
+                    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3 dark:border-slate-600 dark:bg-slate-800/30">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Raqamli javob</label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs text-slate-500 dark:text-slate-400">To'g'ri javob (raqam)</label>
+                          <Input
+                            type="number"
+                            step="any"
+                            placeholder="0"
+                            value={(question.metadata as { correct?: number })?.correct ?? ""}
+                            onChange={(e) => {
+                              const v = e.target.value === "" ? 0 : Number(e.target.value);
+                              updateMetadata(questionIndex, {
+                                ...(question.metadata as object),
+                                correct: Number.isFinite(v) ? v : 0,
+                                tolerance: (question.metadata as { tolerance?: number })?.tolerance ?? 0,
+                              });
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-slate-500 dark:text-slate-400">Ruxsat (±)</label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="any"
+                            placeholder="0"
+                            value={(question.metadata as { tolerance?: number })?.tolerance ?? ""}
+                            onChange={(e) => {
+                              const v = e.target.value === "" ? 0 : Number(e.target.value);
+                              updateMetadata(questionIndex, {
+                                ...(question.metadata as object),
+                                correct: (question.metadata as { correct?: number })?.correct ?? 0,
+                                tolerance: Number.isFinite(v) && v >= 0 ? v : 0,
+                              });
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {(question.type === "DRAG_DROP_IMAGE" || question.type === "DRAG_DROP_TEXT") && (
-                    <div className="space-y-1">
-                      <label className="text-xs text-slate-500 dark:text-slate-400">Metadata (JSON, keyinroq to'liq UI)</label>
-                      <Textarea
-                        className="font-mono text-xs"
-                        placeholder={question.type === "DRAG_DROP_IMAGE" ? '{"imageUrl":"/img.png","zones":[],"items":[]}' : '{"textWithBlanks":"","items":[]}'}
-                        value={JSON.stringify(question.metadata ?? {}, null, 2)}
-                        onChange={(e) => {
-                          try {
-                            const parsed = JSON.parse(e.target.value || "{}");
-                            updateMetadata(questionIndex, parsed);
-                          } catch {
-                            // ignore invalid json while typing
-                          }
-                        }}
-                      />
+                  {question.type === "DRAG_DROP_IMAGE" && (
+                    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3 dark:border-slate-600 dark:bg-slate-800/30">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Rasm va zonalar</label>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-xs text-slate-500 dark:text-slate-400">Rasm URL</label>
+                          <Input
+                            placeholder="/images/mapa.png yoki https://..."
+                            value={(question.metadata as { imageUrl?: string })?.imageUrl ?? ""}
+                            onChange={(e) =>
+                              updateMetadata(questionIndex, {
+                                ...(question.metadata as object),
+                                imageUrl: e.target.value,
+                                zones: (question.metadata as { zones?: { id: string; label: string }[] })?.zones ?? [],
+                                items: (question.metadata as { items?: { id: string; text: string; correctZoneId: string }[] })?.items ?? [],
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-500 dark:text-slate-400">Zonalar (id, nomi)</label>
+                          {((question.metadata as { zones?: { id: string; label: string }[] })?.zones ?? []).map((z, zi) => (
+                            <div key={zi} className="mt-1 flex gap-2">
+                              <Input
+                                placeholder="zone1"
+                                value={z.id}
+                                onChange={(e) => {
+                                  const zones = [...((question.metadata as { zones?: { id: string; label: string }[] })?.zones ?? [])];
+                                  zones[zi] = { ...zones[zi], id: e.target.value };
+                                  updateMetadata(questionIndex, { ...(question.metadata as object), zones });
+                                }}
+                              />
+                              <Input
+                                placeholder="Zona nomi"
+                                value={z.label}
+                                onChange={(e) => {
+                                  const zones = [...((question.metadata as { zones?: { id: string; label: string }[] })?.zones ?? [])];
+                                  zones[zi] = { ...zones[zi], label: e.target.value };
+                                  updateMetadata(questionIndex, { ...(question.metadata as object), zones });
+                                }}
+                              />
+                              <Button type="button" size="sm" variant="ghost" onClick={() => updateMetadata(questionIndex, { ...(question.metadata as object), zones: ((question.metadata as { zones?: unknown[] })?.zones ?? []).filter((_, i) => i !== zi) })}>–</Button>
+                            </div>
+                          ))}
+                          <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => updateMetadata(questionIndex, { ...(question.metadata as object), zones: [...((question.metadata as { zones?: { id: string; label: string }[] })?.zones ?? []), { id: `zone${Date.now()}`, label: "" }] })}>+ Zona</Button>
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-500 dark:text-slate-400">Variantlar (matn → qaysi zonaga)</label>
+                          {((question.metadata as { items?: { id: string; text: string; correctZoneId: string }[] })?.items ?? []).map((item, ii) => (
+                            <div key={ii} className="mt-1 flex gap-2">
+                              <Input
+                                placeholder="Variant matni"
+                                value={item.text}
+                                onChange={(e) => {
+                                  const items = [...((question.metadata as { items?: { id: string; text: string; correctZoneId: string }[] })?.items ?? [])];
+                                  items[ii] = { ...items[ii], text: e.target.value };
+                                  updateMetadata(questionIndex, { ...(question.metadata as object), items });
+                                }}
+                              />
+                              <SelectNative
+                                value={item.correctZoneId}
+                                onChange={(e) => {
+                                  const items = [...((question.metadata as { items?: { id: string; text: string; correctZoneId: string }[] })?.items ?? [])];
+                                  items[ii] = { ...items[ii], correctZoneId: e.target.value };
+                                  updateMetadata(questionIndex, { ...(question.metadata as object), items });
+                                }}
+                                className="min-w-[120px]"
+                              >
+                                <option value="">Zona</option>
+                                {((question.metadata as { zones?: { id: string; label: string }[] })?.zones ?? []).map((z) => (
+                                  <option key={z.id} value={z.id}>{z.label || z.id}</option>
+                                ))}
+                              </SelectNative>
+                              <Button type="button" size="sm" variant="ghost" onClick={() => updateMetadata(questionIndex, { ...(question.metadata as object), items: ((question.metadata as { items?: unknown[] })?.items ?? []).filter((_, i) => i !== ii) })}>–</Button>
+                            </div>
+                          ))}
+                          <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => updateMetadata(questionIndex, { ...(question.metadata as object), items: [...((question.metadata as { items?: { id: string; text: string; correctZoneId: string }[] })?.items ?? []), { id: `item${Date.now()}`, text: "", correctZoneId: "" }] })}>+ Variant</Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {question.type === "DRAG_DROP_TEXT" && (
+                    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3 dark:border-slate-600 dark:bg-slate-800/30">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Matn va bo'shliqlar (sürükle-bırak)</label>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Matnda [[zoneId]] ko'rinishida bo'sh joy qoldiring. Har bir zoneId uchun variant qo'shing.</p>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-xs text-slate-500 dark:text-slate-400">Matn ([[zone1]], [[zone2]]...)</label>
+                          <Textarea
+                            placeholder="Masalan: Poytaxt [[zone1]]. Davlat [[zone2]]."
+                            className="min-h-[80px]"
+                            value={(question.metadata as { textWithBlanks?: string })?.textWithBlanks ?? ""}
+                            onChange={(e) =>
+                              updateMetadata(questionIndex, {
+                                ...(question.metadata as object),
+                                textWithBlanks: e.target.value,
+                                items: (question.metadata as { items?: { id: string; text: string; correctDropId: string }[] })?.items ?? [],
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-500 dark:text-slate-400">Variantlar (matn → qaysi bo'shliqqa)</label>
+                          {((question.metadata as { items?: { id: string; text: string; correctDropId: string }[] })?.items ?? []).map((item, ii) => (
+                            <div key={ii} className="mt-1 flex gap-2">
+                              <Input
+                                placeholder="Variant matni"
+                                value={item.text}
+                                onChange={(e) => {
+                                  const items = [...((question.metadata as { items?: { id: string; text: string; correctDropId: string }[] })?.items ?? [])];
+                                  items[ii] = { ...items[ii], text: e.target.value };
+                                  updateMetadata(questionIndex, { ...(question.metadata as object), items });
+                                }}
+                              />
+                              <SelectNative
+                                value={item.correctDropId}
+                                onChange={(e) => {
+                                  const items = [...((question.metadata as { items?: { id: string; text: string; correctDropId: string }[] })?.items ?? [])];
+                                  items[ii] = { ...items[ii], correctDropId: e.target.value };
+                                  updateMetadata(questionIndex, { ...(question.metadata as object), items });
+                                }}
+                                className="min-w-[120px]"
+                              >
+                                <option value="">Bo'shliq</option>
+                                {(() => {
+                                  const text = (question.metadata as { textWithBlanks?: string })?.textWithBlanks ?? "";
+                                  const ids = [...text.matchAll(/\[\[(\w+)\]\]/g)].map((m) => m[1]);
+                                  const uniq = [...new Set(ids)];
+                                  return uniq.map((id) => <option key={id} value={id}>{id}</option>);
+                                })()}
+                              </SelectNative>
+                              <Button type="button" size="sm" variant="ghost" onClick={() => updateMetadata(questionIndex, { ...(question.metadata as object), items: ((question.metadata as { items?: unknown[] })?.items ?? []).filter((_, i) => i !== ii) })}>–</Button>
+                            </div>
+                          ))}
+                          <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => updateMetadata(questionIndex, { ...(question.metadata as object), items: [...((question.metadata as { items?: { id: string; text: string; correctDropId: string }[] })?.items ?? []), { id: `item${Date.now()}`, text: "", correctDropId: "" }] })}>+ Variant</Button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

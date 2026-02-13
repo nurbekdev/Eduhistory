@@ -1,29 +1,27 @@
 import Link from "next/link";
-import { Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { Zap, Linkedin } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
-import { SectionTitle } from "@/components/shared/section-title";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ActivityHeatmap } from "@/features/profile/components/activity-heatmap";
+import { CopyUsernameButton } from "@/features/profile/components/copy-username-button";
+import { ProfileBanner } from "@/features/profile/components/profile-banner";
 import { ProfileEdit } from "@/features/profile/components/profile-edit";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-function roleText(role: Role) {
-  if (role === Role.ADMIN) return "Admin";
-  if (role === Role.INSTRUCTOR) return "Ustoz";
-  return "Talaba";
+function usernameFromEmail(email: string): string {
+  const part = email.split("@")[0] ?? "";
+  return `@${part.replace(/\./g, "-")}`;
 }
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    redirect("/kirish");
-  }
+  if (!session?.user?.id) redirect("/kirish");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -33,149 +31,158 @@ export default async function ProfilePage() {
       email: true,
       role: true,
       imageUrl: true,
+      coins: true,
       createdAt: true,
       instructorProfile: {
         select: { bio: true, workplace: true, linkedinUrl: true },
       },
       _count: {
-        select: {
-          enrollments: true,
-          certificates: true,
-          coursesCreated: true,
-          quizAttempts: true,
-        },
+        select: { enrollments: true, certificates: true, coursesCreated: true, quizAttempts: true },
       },
     },
   });
 
-  if (!user) {
-    redirect("/kirish");
-  }
+  if (!user) redirect("/kirish");
 
-  const isManagement = user.role === Role.ADMIN || user.role === Role.INSTRUCTOR;
+  const linkedinDisplay = user.instructorProfile?.linkedinUrl ?? null;
 
-  const latestCertificates =
-    user.role === Role.STUDENT
-      ? await prisma.certificate.findMany({
-          where: { userId: user.id },
-          include: {
-            course: {
-              select: { title: true },
-            },
-          },
-          orderBy: { issuedAt: "desc" },
-          take: 3,
-        })
-      : [];
+  const [lessonDates, quizDates] = await Promise.all([
+    prisma.lessonProgress.findMany({
+      where: { userId: user.id, completedAt: { not: null } },
+      select: { completedAt: true },
+    }),
+    prisma.quizAttempt.findMany({
+      where: { userId: user.id, submittedAt: { not: null } },
+      select: { submittedAt: true },
+    }),
+  ]);
+
+  const activityByDay: Record<string, number> = {};
+  const addDate = (d: Date | null) => {
+    if (!d) return;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    activityByDay[key] = (activityByDay[key] ?? 0) + 1;
+  };
+  lessonDates.forEach((p) => addDate(p.completedAt));
+  quizDates.forEach((a) => addDate(a.submittedAt));
+
+  const enrollments = await prisma.enrollment.findMany({
+    where: { userId: user.id },
+    include: {
+      course: {
+        include: {
+          instructor: { select: { fullName: true } },
+          modules: { include: { lessons: true } },
+        },
+      },
+      progress: true,
+    },
+    orderBy: { enrolledAt: "desc" },
+  });
+
+  const username = usernameFromEmail(user.email);
 
   return (
-    <PageContainer className="space-y-6">
-      <SectionTitle title="Mening profilim" description="Akkaunt ma'lumotlari va shaxsiy faoliyat ko'rsatkichlari." />
-
-      <div className="space-y-6">
-        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-3">
-                  <Avatar src={user.imageUrl} alt={user.fullName} size="lg" />
-                  <div>
-                    <CardTitle className="text-lg">{user.fullName}</CardTitle>
-                    <CardDescription>{user.email}</CardDescription>
-                  </div>
-                </div>
-                <Badge variant="locked">{roleText(user.role)}</Badge>
+    <PageContainer className="space-y-8">
+      <div className="-mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
+        <ProfileBanner />
+        <div className="relative px-4 sm:px-6">
+          <div className="-mt-12 flex flex-wrap items-end gap-3 sm:-mt-16 sm:gap-4">
+            <Avatar
+              src={user.imageUrl}
+              alt={user.fullName}
+              size="xl"
+              className="ring-4 ring-white dark:ring-slate-900"
+              priority
+              quality={95}
+            />
+            <div className="flex flex-1 flex-wrap items-center gap-3 pb-1">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 sm:text-3xl">{user.fullName}</h1>
+              <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 dark:border-amber-800 dark:bg-amber-950/50">
+                <Zap className="size-4 text-amber-500 dark:text-amber-400" />
+                <span className="text-sm font-semibold tabular-nums text-amber-800 dark:text-amber-200">{user.coins}</span>
               </div>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-zinc-700">
-            <p>Foydalanuvchi ID: {user.id}</p>
-            <p>Ro'yxatdan o'tgan sana: {new Date(user.createdAt).toLocaleDateString("uz-UZ")}</p>
-            <p>Quiz urinishlari: {user._count.quizAttempts}</p>
-          </CardContent>
-          <CardFooter className="flex flex-wrap gap-2">
-            {isManagement ? (
-              <>
-                <Button asChild>
-                  <Link href="/boshqaruv">Boshqaruv paneli</Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/boshqaruv/kurslar">Kurslarim</Link>
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/mening-kurslarim">Mening kurslarim</Link>
-                </Button>
-              </>
-            )}
-          </CardFooter>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Tezkor statistika</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <span>Yozilgan kurslar</span>
-              <strong>{user._count.enrollments}</strong>
             </div>
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <span>Sertifikatlar</span>
-              <strong>{user._count.certificates}</strong>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <span className="text-slate-600 dark:text-slate-400">{username}</span>
+            <CopyUsernameButton username={username} />
+            <div className="flex gap-2">
+              {linkedinDisplay ? (
+                <a
+                  href={linkedinDisplay}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg border border-slate-200 p-2 text-[#0a66c2] hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="size-5" />
+                </a>
+              ) : null}
             </div>
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <span>Yaratilgan kurslar</span>
-              <strong>{user._count.coursesCreated}</strong>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
+
+      <ActivityHeatmap activityByDay={activityByDay} />
+
+      <section>
+        <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Kurslarim</h2>
+        {enrollments.length === 0 ? (
+          <Card className="dark:border-slate-700">
+            <CardContent className="flex flex-col items-center justify-center gap-4 py-12">
+              <p className="text-center text-slate-600 dark:text-slate-400">Siz hali hech bir kursga yozilmagansiz.</p>
+              <Button asChild>
+                <Link href="/kurslar">Kurslar katalogi</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {enrollments.map((enrollment) => {
+              const totalLessons = enrollment.course.modules.reduce((acc, m) => acc + m.lessons.length, 0);
+              const completed = enrollment.progress.filter((p) => p.status === "COMPLETED").length;
+              const percent = totalLessons === 0 ? 0 : Math.round((completed / totalLessons) * 100);
+              return (
+                <Card key={enrollment.id} className="flex flex-col dark:border-slate-700 dark:bg-slate-800/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg dark:text-slate-100">{enrollment.course.title}</CardTitle>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Muallif: {enrollment.course.instructor.fullName}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="flex-1 space-y-2">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      Tugatilgan darslar soni: {completed}/{totalLessons}
+                    </p>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button asChild className="w-full">
+                      <Link href={`/player/${enrollment.course.id}`}>Kursga o&apos;tish</Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <ProfileEdit
         imageUrl={user.imageUrl}
         fullName={user.fullName}
         role={user.role}
         instructorProfile={user.instructorProfile}
+        githubUrl={null}
+        linkedinUrl={linkedinDisplay}
       />
-
-      {user.role === Role.STUDENT ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Sertifikatlarim</CardTitle>
-            <CardDescription>So'nggi olingan sertifikatlar ro'yxati.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {latestCertificates.length === 0 ? (
-              <p className="text-zinc-600">Hozircha sertifikat mavjud emas.</p>
-            ) : (
-              latestCertificates.map((certificate) => (
-                <div key={certificate.id} className="flex items-center justify-between rounded-md border p-3">
-                  <div>
-                    <p className="font-medium">{certificate.course.title}</p>
-                    <p className="text-xs text-zinc-500">
-                      {new Date(certificate.issuedAt).toLocaleDateString("uz-UZ")} • {certificate.finalScore}%
-                    </p>
-                  </div>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/sertifikat/${certificate.uuid}`}>Ko'rish</Link>
-                  </Button>
-                </div>
-              ))
-            )}
-          </CardContent>
-          <CardFooter>
-            <Button asChild className="w-full sm:w-auto">
-              <Link href="/sertifikatlar">Barcha sertifikatlarni ochish</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      ) : null}
-      </div>
     </PageContainer>
   );
 }
+

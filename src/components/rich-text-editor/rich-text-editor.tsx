@@ -206,6 +206,7 @@ export function RichTextEditor({
       isInternalChange.current = true;
       onChange(e.getHTML());
     },
+    immediatelyRender: false,
   });
 
   useEffect(() => {
@@ -244,7 +245,9 @@ export function RichTextEditor({
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-800">
       <Toolbar editor={editor} onImageClick={handleImageClick} />
       <div style={{ minHeight }} className="border-t border-slate-200 dark:border-slate-600">
-        <EditorContent editor={editor} />
+        {editor ? <EditorContent editor={editor} /> : (
+          <div className="px-3 py-2 text-slate-400 dark:text-slate-500" style={{ minHeight: "140px" }}>{placeholder}</div>
+        )}
       </div>
     </div>
   );

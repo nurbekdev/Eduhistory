@@ -2,16 +2,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
+import { Zap } from "lucide-react";
 
-import { Avatar } from "@/components/ui/avatar";
-import { LogoutButton } from "@/components/layout/logout-button";
 import { ThemeToggle, LocaleSwitcher } from "@/components/layout/header-actions";
+import { UserMenuDropdown } from "@/components/layout/user-menu-dropdown";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { NotificationDropdown } from "@/features/notifications/components/notification-dropdown";
 import { authOptions } from "@/lib/auth";
 import { getT } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/messages";
+import { prisma } from "@/lib/prisma";
 
 type MainHeaderProps = { locale: Locale };
 
@@ -20,6 +20,11 @@ export async function MainHeader({ locale }: MainHeaderProps) {
   const t = getT(locale);
   const role = session?.user?.role;
   const isManagement = role === Role.ADMIN || role === Role.INSTRUCTOR;
+
+  const coins =
+    session?.user?.id != null
+      ? (await prisma.user.findUnique({ where: { id: session.user.id }, select: { coins: true } }))?.coins ?? 0
+      : 0;
 
   const publicLinks = [
     { href: "/", label: t("nav.home") },
@@ -39,12 +44,6 @@ export async function MainHeader({ locale }: MainHeaderProps) {
           { href: "/sertifikatlar", label: t("nav.certificates") },
         ]
       : [];
-
-  function getRoleLabel(r: Role | undefined) {
-    if (r === Role.ADMIN) return t("role.admin");
-    if (r === Role.INSTRUCTOR) return t("role.instructor");
-    return t("role.student");
-  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/80 shadow-sm backdrop-blur-xl">
@@ -73,16 +72,30 @@ export async function MainHeader({ locale }: MainHeaderProps) {
           />
           {session?.user ? (
             <>
-              <Badge variant="locked" className="hidden md:inline-flex">
-                {getRoleLabel(role)}
-              </Badge>
-              <Button asChild variant="outline" size="sm" className="gap-2">
-                <Link href="/profil" className="flex items-center gap-2">
-                  <Avatar src={session.user.image ?? undefined} alt={session.user.name ?? session.user.email ?? "User"} size="sm" />
-                  <span className="hidden sm:inline">{t("nav.profile")}</span>
-                </Link>
-              </Button>
-              <LogoutButton />
+              <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-2.5 py-1.5 dark:border-amber-800 dark:bg-amber-950/50">
+                <Zap className="size-4 text-amber-500 dark:text-amber-400" />
+                <span className="text-sm font-semibold tabular-nums text-amber-800 dark:text-amber-200">{coins}</span>
+              </div>
+              <UserMenuDropdown
+                imageUrl={session.user.image ?? null}
+                role={role ?? Role.STUDENT}
+                locale={locale}
+                labels={{
+                  profile: t("nav.profile"),
+                  courses: t("nav.courses"),
+                  myCourses: t("nav.myCourses"),
+                  certificates: t("nav.certificates"),
+                  management: t("nav.management"),
+                  analytics: t("nav.analytics"),
+                  language: t("nav.language"),
+                  themeSettings: t("nav.themeSettings"),
+                  light: t("theme.light"),
+                  dark: t("theme.dark"),
+                  langUz: t("lang.uz"),
+                  langEn: t("lang.en"),
+                  logout: t("auth.logout"),
+                }}
+              />
             </>
           ) : (
             <>

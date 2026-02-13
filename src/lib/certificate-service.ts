@@ -36,15 +36,15 @@ type GenerateCertificateParams = {
 
 const PAGE_W = 842;
 const PAGE_H = 595;
-const MARGIN = 48;
+const MARGIN = 44;
 const INNER_W = PAGE_W - 2 * MARGIN;
 const INNER_H = PAGE_H - 2 * MARGIN;
-const EMERALD = rgb(0.05, 0.44, 0.35);
-const EMERALD_LIGHT = rgb(0.7, 0.9, 0.85);
-const EMERALD_DARK = rgb(0.04, 0.35, 0.28);
-const SLATE = rgb(0.15, 0.18, 0.22);
-const SLATE_MUTED = rgb(0.4, 0.45, 0.52);
-const GOLD = rgb(0.72, 0.55, 0.2);
+const EMERALD = rgb(0.06, 0.46, 0.37);
+const EMERALD_LIGHT = rgb(0.85, 0.95, 0.92);
+const EMERALD_DARK = rgb(0.04, 0.32, 0.26);
+const SLATE = rgb(0.12, 0.14, 0.18);
+const SLATE_MUTED = rgb(0.35, 0.4, 0.48);
+const GOLD = rgb(0.65, 0.52, 0.18);
 
 function centerX(font: PDFFont, text: string, size: number): number {
   const w = font.widthOfTextAtSize(text, size);
@@ -132,52 +132,28 @@ export async function generateCertificateForPassedFinalAttempt({
 
   const left = MARGIN;
   const right = PAGE_W - MARGIN;
-  const bottom = MARGIN;
   const top = PAGE_H - MARGIN;
+  const bottom = MARGIN;
 
-  // Outer frame (thick)
+  // Single clean border
   page.drawRectangle({
     x: left,
     y: bottom,
     width: INNER_W,
     height: INNER_H,
     borderColor: EMERALD_DARK,
-    borderWidth: 3,
-  });
-  // Inner frame
-  page.drawRectangle({
-    x: left + 8,
-    y: bottom + 8,
-    width: INNER_W - 16,
-    height: INNER_H - 16,
-    borderColor: EMERALD_LIGHT,
-    borderWidth: 0.8,
-  });
-  // Corner accents (small squares)
-  const cornerSize = 12;
-  [left + 11, right - 11 - cornerSize].forEach((x) => {
-    [bottom + 11, top - 11 - cornerSize].forEach((y) => {
-      page.drawRectangle({
-        x,
-        y,
-        width: cornerSize,
-        height: cornerSize,
-        borderColor: GOLD,
-        borderWidth: 1,
-      });
-    });
+    borderWidth: 1.2,
   });
 
-  // Top banner
-  const bannerBottom = top - 62;
-  const bannerW = INNER_W - 24;
-  const bannerH = 54;
+  // Top banner — full width, professional
+  const bannerH = 72;
+  const bannerBottom = top - bannerH;
   page.drawRectangle({
-    x: left + 12,
+    x: left,
     y: bannerBottom,
-    width: bannerW,
+    width: INNER_W,
     height: bannerH,
-    color: EMERALD,
+    color: EMERALD_DARK,
   });
 
   const hasLogo = Boolean(certSettings?.logoUrl);
@@ -189,13 +165,13 @@ export async function generateCertificateForPassedFinalAttempt({
         const img = imgData.isPng
           ? await pdf.embedPng(imgData.bytes)
           : await pdf.embedJpg(imgData.bytes);
-        const maxLogoW = 200;
-        const maxLogoH = 28;
+        const maxLogoW = 220;
+        const maxLogoH = 32;
         const scale = Math.min(maxLogoW / img.width, maxLogoH / img.height, 1);
         const logoW = img.width * scale;
         const logoH = img.height * scale;
         const logoX = (PAGE_W - logoW) / 2;
-        const logoY = bannerBottom + bannerH - logoH - 8;
+        const logoY = bannerBottom + bannerH - logoH - 12;
         page.drawImage(img, {
           x: logoX,
           y: logoY,
@@ -210,35 +186,36 @@ export async function generateCertificateForPassedFinalAttempt({
   }
   if (!logoDrawn) {
     page.drawText("EDUHISTORY", {
-      x: centerX(titleFont, "EDUHISTORY", 12),
-      y: bannerBottom + 34,
-      size: 12,
+      x: centerX(titleFont, "EDUHISTORY", 14),
+      y: bannerBottom + 42,
+      size: 14,
       font: titleFont,
       color: rgb(1, 1, 1),
     });
   }
   page.drawText("SERTIFIKAT", {
-    x: centerX(titleFont, "SERTIFIKAT", hasLogo && logoDrawn ? 14 : 24),
-    y: bannerBottom + (hasLogo && logoDrawn ? 4 : 12),
-    size: hasLogo && logoDrawn ? 14 : 24,
+    x: centerX(titleFont, "SERTIFIKAT", 20),
+    y: bannerBottom + 14,
+    size: 20,
     font: titleFont,
     color: rgb(1, 1, 1),
   });
 
+  const contentTop = bannerBottom - 24;
   const certLine = "Quyidagi shaxs quyidagi kursni muvaffaqiyatli yakunlaganligini tasdiqlaydi:";
   page.drawText(certLine, {
-    x: centerX(textFont, certLine, 11),
-    y: bannerBottom - 32,
-    size: 11,
+    x: centerX(textFont, certLine, 10),
+    y: contentTop - 14,
+    size: 10,
     font: textFont,
     color: SLATE_MUTED,
   });
 
   const name = attempt.user.fullName;
   page.drawText(name, {
-    x: centerX(titleFont, name, 28),
-    y: bannerBottom - 82,
-    size: 28,
+    x: centerX(titleFont, name, 26),
+    y: contentTop - 58,
+    size: 26,
     font: titleFont,
     color: SLATE,
   });
@@ -246,33 +223,33 @@ export async function generateCertificateForPassedFinalAttempt({
   const courseTitle = attempt.quiz.course.title;
   const courseLabel = "Kurs: ";
   const courseFull = courseLabel + courseTitle;
-  const maxCourseW = INNER_W - 100;
-  let courseSize = 16;
+  const maxCourseW = INNER_W - 80;
+  let courseSize = 14;
   let courseTextW = titleFont.widthOfTextAtSize(courseFull, courseSize);
   if (courseTextW > maxCourseW) {
-    courseSize = 12;
+    courseSize = 11;
     courseTextW = titleFont.widthOfTextAtSize(courseFull, courseSize);
   }
   page.drawText(courseLabel, {
     x: (PAGE_W - courseTextW) / 2,
-    y: bannerBottom - 118,
+    y: contentTop - 88,
     size: courseSize,
     font: textFont,
     color: SLATE_MUTED,
   });
   page.drawText(courseTitle, {
     x: (PAGE_W - courseTextW) / 2 + textFont.widthOfTextAtSize(courseLabel, courseSize),
-    y: bannerBottom - 118,
+    y: contentTop - 88,
     size: courseSize,
     font: titleFont,
     color: SLATE,
   });
 
-  const statsY = bannerBottom - 192;
-  const statFontSize = 11;
-  const labelFontSize = 9;
-  const boxW = (INNER_W - 100) / 4;
-  const boxStart = left + 50;
+  const statsY = contentTop - 168;
+  const statFontSize = 10;
+  const labelFontSize = 8;
+  const boxW = (INNER_W - 80) / 4;
+  const boxStart = left + 40;
   const statItems: [string, string][] = [
     ["Final ball", `${attempt.scorePercent}%`],
     ["Darslar", `${totalLessons}`],
@@ -285,40 +262,40 @@ export async function generateCertificateForPassedFinalAttempt({
     const valueW = titleFont.widthOfTextAtSize(value, statFontSize);
     page.drawText(label, {
       x: cx - labelW / 2,
-      y: statsY - 8,
+      y: statsY - 6,
       size: labelFontSize,
       font: textFont,
       color: SLATE_MUTED,
     });
     page.drawText(value, {
       x: cx - valueW / 2,
-      y: statsY - 28,
+      y: statsY - 22,
       size: statFontSize,
       font: titleFont,
-      color: EMERALD,
+      color: EMERALD_DARK,
     });
   });
 
-  const sealX = right - 72;
-  const sealY = bottom + 78;
+  const footerAreaTop = bottom + 100;
+  const sealX = right - 56;
+  const sealY = footerAreaTop - 24;
 
-  const footerY = bottom + 32;
+  const footerY = bottom + 28;
   page.drawText("Eduhistory", {
-    x: centerX(titleFont, "Eduhistory", 14),
+    x: centerX(titleFont, "Eduhistory", 12),
     y: footerY,
-    size: 14,
+    size: 12,
     font: titleFont,
-    color: EMERALD,
+    color: EMERALD_DARK,
   });
   page.drawText("O'quv boshqaruv tizimi", {
-    x: centerX(textFont, "O'quv boshqaruv tizimi", 9),
-    y: footerY - 18,
-    size: 9,
+    x: centerX(textFont, "O'quv boshqaruv tizimi", 8),
+    y: footerY - 14,
+    size: 8,
     font: textFont,
     color: SLATE_MUTED,
   });
 
-  // Signature (from settings) – left of seal, above footer text
   if (certSettings?.signatureUrl) {
     const sigData = await loadImageBytes(certSettings.signatureUrl);
     if (sigData) {
@@ -326,13 +303,13 @@ export async function generateCertificateForPassedFinalAttempt({
         const sigImg = sigData.isPng
           ? await pdf.embedPng(sigData.bytes)
           : await pdf.embedJpg(sigData.bytes);
-        const maxSigW = 90;
-        const maxSigH = 38;
+        const maxSigW = 88;
+        const maxSigH = 36;
         const sigScale = Math.min(maxSigW / sigImg.width, maxSigH / sigImg.height, 1);
         const sigW = sigImg.width * sigScale;
         const sigH = sigImg.height * sigScale;
-        const sigX = sealX - 120;
-        const sigY = bottom + 52;
+        const sigX = sealX - 110;
+        const sigY = footerAreaTop - 50;
         page.drawImage(sigImg, {
           x: sigX,
           y: sigY,
@@ -345,56 +322,73 @@ export async function generateCertificateForPassedFinalAttempt({
     }
   }
 
-  // Seal (E)
   page.drawCircle({
     x: sealX,
     y: sealY,
-    size: 34,
-    borderColor: EMERALD,
-    borderWidth: 2,
+    size: 28,
+    borderColor: EMERALD_DARK,
+    borderWidth: 1.5,
   });
   page.drawCircle({
     x: sealX,
     y: sealY,
-    size: 30,
+    size: 24,
     borderColor: GOLD,
-    borderWidth: 0.6,
+    borderWidth: 0.5,
   });
   page.drawText("E", {
-    x: sealX - titleFont.widthOfTextAtSize("E", 20) / 2,
-    y: sealY - 7,
-    size: 20,
+    x: sealX - titleFont.widthOfTextAtSize("E", 16) / 2,
+    y: sealY - 5.5,
+    size: 16,
     font: titleFont,
-    color: EMERALD,
+    color: EMERALD_DARK,
   });
 
-  // QR code + verification box (bottom-left) – larger QR for better scan
-  const qrSize = 88;
-  const qrBoxX = left + 20;
-  const qrBoxY = bottom + 20;
-  const qrBoxW = 140;
-  const qrBoxH = 118;
+  // QR block — all text and QR strictly inside one box with padding
+  const qrSize = 80;
+  const qrPadding = 12;
+  const verifyLabel = "Haqiqiyligini tekshirish:";
+  const qrScanLabel = "QR skanerlang";
+  const labelSize = 10;
+  const qrBoxW = Math.max(160, Math.ceil(Math.max(
+    titleFont.widthOfTextAtSize(verifyLabel, labelSize),
+    textFont.widthOfTextAtSize(qrScanLabel, labelSize),
+  ) + qrPadding * 2));
+  const qrBoxH = qrPadding + labelSize + 6 + qrSize + 6 + labelSize + qrPadding;
+  const qrBoxX = left + 16;
+  const qrBoxY = bottom + 16;
+
   page.drawRectangle({
     x: qrBoxX,
     y: qrBoxY,
     width: qrBoxW,
     height: qrBoxH,
-    borderColor: EMERALD_LIGHT,
-    borderWidth: 0.8,
+    borderColor: EMERALD_DARK,
+    borderWidth: 1,
   });
   page.drawRectangle({
-    x: qrBoxX + 2,
-    y: qrBoxY + 2,
-    width: qrBoxW - 4,
-    height: qrBoxH - 4,
-    borderColor: EMERALD,
+    x: qrBoxX + 1,
+    y: qrBoxY + 1,
+    width: qrBoxW - 2,
+    height: qrBoxH - 2,
+    borderColor: EMERALD_LIGHT,
     borderWidth: 0.5,
   });
+
+  const topLabelY = qrBoxY + qrBoxH - qrPadding - labelSize;
+  page.drawText(verifyLabel, {
+    x: qrBoxX + (qrBoxW - titleFont.widthOfTextAtSize(verifyLabel, labelSize)) / 2,
+    y: topLabelY,
+    size: labelSize,
+    font: titleFont,
+    color: EMERALD_DARK,
+  });
+
   if (qrPngBytes) {
     try {
       const qrImage = await pdf.embedPng(qrPngBytes);
       const qrX = qrBoxX + (qrBoxW - qrSize) / 2;
-      const qrY = qrBoxY + qrBoxH - qrSize - 10;
+      const qrY = topLabelY - 6 - qrSize;
       page.drawImage(qrImage, {
         x: qrX,
         y: qrY,
@@ -402,23 +396,17 @@ export async function generateCertificateForPassedFinalAttempt({
         height: qrSize,
       });
     } catch {
-      // ignore embed error
+      // ignore
     }
   }
-  const verifyLabel = "Haqiqiyligini tekshirish:";
-  page.drawText(verifyLabel, {
-    x: qrBoxX + (qrBoxW - textFont.widthOfTextAtSize(verifyLabel, 9)) / 2,
-    y: qrBoxY + 8,
-    size: 9,
-    font: titleFont,
-    color: EMERALD,
-  });
-  page.drawText("QR skanerlang", {
-    x: qrBoxX + (qrBoxW - textFont.widthOfTextAtSize("QR skanerlang", 8)) / 2,
-    y: qrBoxY + 2,
-    size: 8,
+
+  const bottomLabelY = qrBoxY + qrPadding;
+  page.drawText(qrScanLabel, {
+    x: qrBoxX + (qrBoxW - textFont.widthOfTextAtSize(qrScanLabel, labelSize)) / 2,
+    y: bottomLabelY,
+    size: labelSize,
     font: textFont,
-    color: SLATE_MUTED,
+    color: EMERALD_DARK,
   });
 
   const bytes = await pdf.save();

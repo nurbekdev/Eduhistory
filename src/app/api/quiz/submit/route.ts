@@ -12,7 +12,7 @@ const submitSchema = z.object({
   answers: z.array(
     z.object({
       questionId: z.string().min(1),
-      selectedOptionIds: z.union([z.array(z.string()), z.record(z.unknown())]),
+      selectedOptionIds: z.union([z.array(z.string()), z.any()]),
     }),
   ),
 });
@@ -23,8 +23,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Avval tizimga kiring." }, { status: 401 });
   }
 
-  const payload = await request.json();
-  const parsed = submitSchema.safeParse(payload);
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ message: "JSON noto'g'ri yoki bo'sh." }, { status: 400 });
+  }
+
+  let parsed: { success: true; data: z.infer<typeof submitSchema> } | { success: false; error: z.ZodError };
+  try {
+    parsed = submitSchema.safeParse(payload) as typeof parsed;
+  } catch (err) {
+    console.error("Quiz submit schema parse error:", err);
+    return NextResponse.json({ message: "Javob formati noto'g'ri." }, { status: 400 });
+  }
+
   if (!parsed.success) {
     return NextResponse.json({ message: "Javob formati noto'g'ri." }, { status: 400 });
   }
@@ -147,6 +160,11 @@ export async function POST(request: Request) {
         submittedAt: new Date(),
         status: isPassed ? AttemptStatus.PASSED : AttemptStatus.FAILED,
       },
+    });
+
+    await tx.user.update({
+      where: { id: session.user.id },
+      data: { coins: { increment: correctCount } },
     });
 
     if (attempt.quiz.lessonId && attempt.enrollmentId) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Download, FileText } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
@@ -149,9 +149,8 @@ export function StudentsTable() {
                 </thead>
                 <tbody>
                   {rows.map((r) => (
-                    <>
+                    <Fragment key={r.id}>
                       <tr
-                        key={r.id}
                         className="border-b border-slate-100 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                       >
                         <td className="py-3 pr-2">
@@ -193,7 +192,7 @@ export function StudentsTable() {
                         </td>
                       </tr>
                       {expandedId === r.id && r.attempts.length > 0 && (
-                        <tr key={`${r.id}-attempts`} className="bg-slate-50 dark:bg-slate-700/30">
+                        <tr className="bg-slate-50 dark:bg-slate-700/30">
                           <td colSpan={7} className="py-3 pr-2">
                             <div className="rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3">
                               <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
@@ -230,7 +229,7 @@ export function StudentsTable() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

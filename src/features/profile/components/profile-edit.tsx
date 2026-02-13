@@ -19,6 +19,8 @@ type ProfileEditProps = {
     workplace: string | null;
     linkedinUrl: string | null;
   } | null;
+  githubUrl?: string | null;
+  linkedinUrl?: string | null;
 };
 
 export function ProfileEdit({
@@ -26,6 +28,8 @@ export function ProfileEdit({
   fullName: initialFullName,
   role,
   instructorProfile,
+  githubUrl: _githubUrl,
+  linkedinUrl: _linkedinUrl,
 }: ProfileEditProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);

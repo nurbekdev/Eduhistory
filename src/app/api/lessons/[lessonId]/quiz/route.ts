@@ -6,9 +6,28 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const QUESTION_TYPE_VALUES = [
+  "MULTIPLE_CHOICE",
+  "MULTIPLE_SELECT",
+  "TRUE_FALSE",
+  "MATCHING",
+  "CLOZE",
+  "NUMERICAL",
+  "DRAG_DROP_IMAGE",
+  "DRAG_DROP_TEXT",
+] as const;
+
 const optionSchema = z.object({
   text: z.string().min(1),
   isCorrect: z.boolean(),
+});
+
+const questionSchema = z.object({
+  text: z.string().min(5),
+  explanation: z.string().optional(),
+  type: z.enum(QUESTION_TYPE_VALUES),
+  metadata: z.any().optional().nullable(),
+  options: z.array(optionSchema).optional().default([]),
 });
 
 const quizBuilderSchema = z.object({
@@ -17,17 +36,7 @@ const quizBuilderSchema = z.object({
   passingScore: z.number().int().min(1).max(100),
   attemptLimit: z.number().int().min(1).max(10),
   timeLimitMinutes: z.number().int().min(0).max(300).optional().nullable(),
-  questions: z
-    .array(
-      z.object({
-        text: z.string().min(5),
-        explanation: z.string().optional(),
-        type: z.nativeEnum(QuestionType),
-        metadata: z.record(z.unknown()).optional().nullable(),
-        options: z.array(optionSchema).optional().default([]),
-      }),
-    )
-    .min(1),
+  questions: z.array(questionSchema).min(1),
 });
 
 type RouteContext = {
@@ -62,7 +71,21 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Bu dars testini boshqarishga ruxsat yo'q." }, { status: 403 });
   }
 
-  const parsed = quizBuilderSchema.safeParse(await request.json());
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ message: "JSON noto'g'ri yoki bo'sh." }, { status: 400 });
+  }
+
+  let parsed: z.SafeParseReturnType<z.infer<typeof quizBuilderSchema>, unknown>;
+  try {
+    parsed = quizBuilderSchema.safeParse(body);
+  } catch (err) {
+    console.error("Quiz schema parse error:", err);
+    return NextResponse.json({ message: "Quiz ma'lumotlari formati noto'g'ri." }, { status: 400 });
+  }
+
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     const issueMessage = issue ? `${issue.path.join(".") || "field"}: ${issue.message}` : "Quiz ma'lumotlari noto'g'ri.";
@@ -147,7 +170,7 @@ export async function PUT(request: Request, context: RouteContext) {
           create: parsed.data.questions.map((question, questionIndex) => ({
             text: question.text,
             explanation: question.explanation,
-            type: question.type,
+            type: question.type as QuestionType,
             metadata: question.metadata ?? undefined,
             order: questionIndex + 1,
             options: {
