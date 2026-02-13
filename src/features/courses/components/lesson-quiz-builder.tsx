@@ -55,9 +55,14 @@ type QuizData = {
   questions: QuizQuestion[];
 };
 
+/** Accepts Prisma/API quiz shape where question.type may be string and metadata unknown */
+type InitialQuizInput = Omit<QuizData, "questions"> & {
+  questions: Array<Omit<QuizQuestion, "type" | "metadata"> & { type: string; metadata?: unknown }>;
+};
+
 type LessonQuizBuilderProps = {
   saveUrl: string;
-  initialQuiz: QuizData | null;
+  initialQuiz: InitialQuizInput | null;
   defaultQuizTitle: string;
   panelTitle?: string;
   onSaved: () => Promise<void> | void;

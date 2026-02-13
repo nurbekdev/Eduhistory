@@ -1,4 +1,4 @@
-import { QuestionType, Role } from "@prisma/client";
+import { Prisma, QuestionType, Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -78,7 +78,7 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json({ message: "JSON noto'g'ri yoki bo'sh." }, { status: 400 });
   }
 
-  let parsed: z.SafeParseReturnType<z.infer<typeof quizBuilderSchema>, unknown>;
+  let parsed: { success: true; data: z.infer<typeof quizBuilderSchema> } | { success: false; error: z.ZodError };
   try {
     parsed = quizBuilderSchema.safeParse(body);
   } catch (err) {
@@ -92,7 +92,7 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json({ message: issueMessage }, { status: 400 });
   }
 
-  const optionBasedTypes = [
+  const optionBasedTypes: QuestionType[] = [
     QuestionType.MULTIPLE_CHOICE,
     QuestionType.MULTIPLE_SELECT,
     QuestionType.TRUE_FALSE,
@@ -171,7 +171,7 @@ export async function PUT(request: Request, context: RouteContext) {
             text: question.text,
             explanation: question.explanation,
             type: question.type as QuestionType,
-            metadata: question.metadata ?? undefined,
+            metadata: (question.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
             order: questionIndex + 1,
             options: {
               create: (question.options ?? []).map((option, optionIndex) => ({

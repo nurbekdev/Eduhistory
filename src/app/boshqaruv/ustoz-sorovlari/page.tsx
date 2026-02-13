@@ -14,7 +14,7 @@ export default async function UstozSorovlariPage() {
     redirect("/dashboard");
   }
 
-  const pending = await prisma.instructorRequest.findMany({
+  const raw = await prisma.instructorRequest.findMany({
     where: { status: "PENDING" },
     include: {
       user: {
@@ -23,6 +23,12 @@ export default async function UstozSorovlariPage() {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  const pending = raw.map((r) => ({
+    ...r,
+    createdAt: r.createdAt.toISOString(),
+    user: { ...r.user, createdAt: r.user.createdAt.toISOString() },
+  }));
 
   return (
     <PageContainer className="p-6">

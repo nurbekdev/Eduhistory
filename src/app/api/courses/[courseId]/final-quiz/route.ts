@@ -1,4 +1,4 @@
-import { QuestionType, Role } from "@prisma/client";
+import { Prisma, QuestionType, Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -139,7 +139,7 @@ export async function PUT(request: Request, context: RouteContext) {
             text: question.text,
             explanation: question.explanation,
             type: question.type,
-            metadata: question.metadata ?? undefined,
+            metadata: (question.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
             order: questionIndex + 1,
             options: {
               create: (question.options ?? []).map((option, optionIndex) => ({

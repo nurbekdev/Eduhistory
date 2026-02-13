@@ -212,7 +212,7 @@ export function RichTextEditor({
   useEffect(() => {
     if (!editor) return;
     if (value !== prevValueRef.current && !isInternalChange.current) {
-      editor.commands.setContent(value || "", false);
+      editor.commands.setContent(value || "", { emitUpdate: false });
       prevValueRef.current = value;
     }
     isInternalChange.current = false;

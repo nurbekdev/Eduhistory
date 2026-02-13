@@ -178,7 +178,8 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
 
   const toggleOption = (questionId: string, optionId: string, type: "MULTIPLE_CHOICE" | "MULTIPLE_SELECT") => {
     setSelectedAnswers((prev) => {
-      const existing = prev[questionId] ?? [];
+      const raw = prev[questionId];
+      const existing = Array.isArray(raw) ? raw : [];
       if (type === "MULTIPLE_CHOICE") {
         return {
           ...prev,

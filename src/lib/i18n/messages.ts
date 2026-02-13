@@ -66,8 +66,6 @@ export const messages: Record<Locale, Record<string, string>> = {
     "dashboard.certificates": "Sertifikatlar",
     "dashboard.noCourses": "Hozircha kursga yozilmagansiz.",
     "dashboard.viewCourses": "Kurslar katalogi",
-    "login.title": "Tizimga kirish",
-    "login.subtitle": "Davom etish uchun akkauntingizga kiring.",
     "register.title": "Ro'yxatdan o'tish",
     "register.subtitle": "Yangi hisob yarating.",
     "certificates.title": "Mening sertifikatlarim",

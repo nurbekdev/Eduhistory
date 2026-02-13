@@ -73,11 +73,11 @@ export async function POST(request: Request) {
   );
 
   function isQuestionCorrect(
-    question: { type: string; options: { id: string; isCorrect: boolean }[]; metadata?: unknown },
+    question: { type: QuestionType; options: { id: string; isCorrect: boolean }[]; metadata?: unknown },
     answer: unknown
   ): boolean {
-    const optionBased = [QuestionType.MULTIPLE_CHOICE, QuestionType.MULTIPLE_SELECT, QuestionType.TRUE_FALSE];
-    if (optionBased.includes(question.type as QuestionType)) {
+    const optionBased: QuestionType[] = [QuestionType.MULTIPLE_CHOICE, QuestionType.MULTIPLE_SELECT, QuestionType.TRUE_FALSE];
+    if (optionBased.includes(question.type)) {
       const selected = Array.isArray(answer) ? (answer as string[]).sort() : [];
       const correctIds = question.options
         .filter((o) => o.isCorrect)
