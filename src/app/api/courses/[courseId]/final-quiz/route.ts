@@ -60,7 +60,11 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json({ message: issueMessage }, { status: 400 });
   }
 
-  const optionBasedTypes = [QuestionType.MULTIPLE_CHOICE, QuestionType.MULTIPLE_SELECT, QuestionType.TRUE_FALSE];
+  const optionBasedTypes: QuestionType[] = [
+    QuestionType.MULTIPLE_CHOICE,
+    QuestionType.MULTIPLE_SELECT,
+    QuestionType.TRUE_FALSE,
+  ];
   for (let i = 0; i < parsed.data.questions.length; i++) {
     const q = parsed.data.questions[i];
     if (optionBasedTypes.includes(q.type)) {
