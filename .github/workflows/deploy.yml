@@ -1,0 +1,38 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [main, master]
+
+env:
+  SERVER_HOST: 157.245.231.33
+  DEPLOY_PATH: /var/www/eduhistory
+  # Repo rooti = loyiha (GitHub'da src, Dockerfile rootda), shuning uchun bo'sh
+  APP_SUBDIR: ""
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER || 'root' }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            cd ${{ env.DEPLOY_PATH }}
+            git fetch origin ${{ github.ref_name }} --depth 1
+            git reset --hard origin/${{ github.ref_name }}
+            if [ -n "${{ env.APP_SUBDIR }}" ] && [ "${{ env.APP_SUBDIR }}" != "." ]; then
+              cd ${{ env.APP_SUBDIR }}
+            fi
+            docker compose -f docker-compose.prod.yml build --no-cache
+            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml exec -T app npx prisma migrate deploy 2>/dev/null || true
+            docker image prune -f
