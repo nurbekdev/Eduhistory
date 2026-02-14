@@ -89,8 +89,8 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
               style={{ flex: `0 0 ${cardWidthPercent}%` }}
             >
               <Card className="group h-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg transition duration-300 hover:shadow-xl hover:border-emerald-200 dark:hover:border-emerald-800 sm:rounded-2xl">
-                {/* Pro darajada: 3:4 portrait, object-cover + center top – chuzilish va kesilish yo‘q */}
-                <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100 dark:bg-slate-700">
+                {/* O‘lchovli rasm: balandlik o‘rta, chuzilish yo‘q */}
+                <div className="relative h-40 w-full overflow-hidden bg-slate-100 dark:bg-slate-700 sm:h-44 md:h-48">
                   {instructor.imageUrl ? (
                     instructor.imageUrl.startsWith("http") || instructor.imageUrl.startsWith("/uploads/") ? (
                       <img
