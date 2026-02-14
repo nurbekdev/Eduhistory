@@ -6,7 +6,7 @@ on:
 
 env:
   SERVER_HOST: 157.245.231.33
-  DEPLOY_PATH: /var/www/eduhistory
+  DEPLOY_PATH: /var/www/Eduhistory
   # Repo rooti = loyiha (GitHub'da src, Dockerfile rootda), shuning uchun bo'sh
   APP_SUBDIR: ""
 

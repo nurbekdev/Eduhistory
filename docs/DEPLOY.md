@@ -104,10 +104,11 @@ certbot --nginx -d eduhistory.uz -d www.eduhistory.uz
 
 Certbot configni o‘zi o‘zgartirib, HTTPS qo‘shadi. Qayta reload kerak bo‘lmasa ham certbot nginx ni reload qiladi.
 
+
 ### 1.7 Birinchi marta Docker orqali ishga tushirish
 
 ```bash
-cd /var/www/eduhistory/eduhistory-app   # yoki /var/www/eduhistory agar repo o‘zi loyiha bo‘lsa
+cd /var/www/Eduhistory/eduhistory-app   # yoki /var/www/Eduhistory agar repo o‘zi loyiha bo‘lsa
 docker compose -f docker-compose.prod.yml build --no-cache
 docker compose -f docker-compose.prod.yml up -d
 ```
@@ -127,16 +128,57 @@ Brauzerda **https://eduhistory.uz** ochilishi kerak.
 
 Har safar `main` (yoki `master`) branch ga push qilganda avtomatik deploy bo‘lishi uchun GitHub Actions ishlatiladi.
 
-### 2.1 GitHub Secrets qo‘shish
+### 2.1 GitHub Actions uchun SSH kalit (majburiy)
+
+GitHub Actions **serverga** SSH orqali ulanadi. Buning uchun bitta kalit juftligi kerak:
+
+- **Private key** → GitHub repo **Secrets** da saqlanadi (`SSH_PRIVATE_KEY`).
+- **Public key** → serverda `~/.ssh/authorized_keys` ichida bo‘lishi kerak (ulangan foydalanuvchi uchun).
+
+**Qadam 1 — Kalit yaratish (lokal mashinangizda yoki serverda):**
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/eduhistory_deploy -N ""
+```
+
+`-N ""` — passphrase bo‘sh (avtomat deploy uchun qulay). Chiqqan fayllar: `eduhistory_deploy` (private), `eduhistory_deploy.pub` (public).
+
+**Qadam 2 — Public kalitni serverga qo‘shish:**
+
+```bash
+# Lokal mashinangizda (public kalitni ko‘rsatish)
+cat ~/.ssh/eduhistory_deploy.pub
+```
+
+Chiqgan qatorni nusxalang. Keyin serverga kirib:
+
+```bash
+ssh root@157.245.231.33
+mkdir -p ~/.ssh
+echo "PASTE_PUBLIC_KEY_HERE" >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+```
+
+**Qadam 3 — Private kalitni GitHub Secrets ga qo‘shish:**
 
 1. GitHub repo → **Settings** → **Secrets and variables** → **Actions**
-2. **New repository secret** orqali quyidagilarni qo‘shing:
+2. **New repository secret** → nomi: `SSH_PRIVATE_KEY`
+3. Qiymat: **to‘liq private key** matni (barcha qatorlar, shu jumladan `-----BEGIN OPENSSH PRIVATE KEY-----` va `-----END OPENSSH PRIVATE KEY-----`).
 
-| Secret nomi       | Qiymat |
-|-------------------|--------|
-| `SSH_PRIVATE_KEY` | Serverga SSH kalitining **private** qismi (to‘liq matn, `-----BEGIN ... END ...-----` bilan) |
-| `SERVER_USER`     | Ixtiyoriy. SSH foydalanuvchi (odatda `root`) |
-| `SSH_PORT`        | Ixtiyoriy. SSH port (odatda `22`) |
+Nusxalashda bitta qatordan boshqa qatorga o‘tishlar saqlanishi kerak. Mac/Linux da:
+
+```bash
+cat ~/.ssh/eduhistory_deploy
+```
+
+Chiqganini butunlay nusxalab GitHub’dagi Secret qiymatiga yopishtiring.
+
+**Ixtiyoriy secrets:**
+
+| Secret nomi     | Qiymat |
+|-----------------|--------|
+| `SERVER_USER`   | SSH foydalanuvchi (agar `root` bo‘lsa, qo‘shish shart emas; default: `root`) |
+| `SSH_PORT`      | SSH port (default: `22`) |
 
 ### 2.2 Serverda GitHub dan pull qilish uchun SSH kalit
 
@@ -171,7 +213,7 @@ git remote set-url origin https://TOKEN@github.com/YOUR_USERNAME/YOUR_REPO.git
 - Repo tarkibida **`eduhistory-app`** papkasi bo‘lsa: `.github/workflows/deploy.yml` ichida `APP_SUBDIR: eduhistory-app` qoldiring.
 - Repo o‘zi to‘g‘ridan-to‘g‘ri loyiha bo‘lsa: `APP_SUBDIR` ni `.` qiling yoki workflow’da `cd` ni faqat `$DEPLOY_PATH` ga qiling.
 
-`DEPLOY_PATH` serverda loyiha joylashgan papka: odatda `/var/www/eduhistory`. Agar loyiha boshqa joyda bo‘lsa, workflow’da `DEPLOY_PATH` ni o‘shanga moslashtiring.
+`DEPLOY_PATH` serverda loyiha joylashgan papka: odatda `/var/www/Eduhistory`. Agar loyiha boshqa joyda bo‘lsa, workflow’da `DEPLOY_PATH` ni o‘shanga moslashtiring.
 
 ---
 
@@ -179,7 +221,7 @@ git remote set-url origin https://TOKEN@github.com/YOUR_USERNAME/YOUR_REPO.git
 
 1. `main` (yoki `master`) ga push qilasiz.
 2. GitHub Actions ishga tushadi.
-3. Serverga SSH orqali ulanish: `cd /var/www/eduhistory`, `git pull`, keyin `eduhistory-app` (yoki loyiha root) da:
+3. Serverga SSH orqali ulanish: `cd /var/www/Eduhistory`, `git pull`, keyin `eduhistory-app` (yoki loyiha root) da:
    - `docker compose -f docker-compose.prod.yml build --no-cache`
    - `docker compose -f docker-compose.prod.yml up -d`
 4. Prisma migratsiyalar: konteyner ichida `prisma migrate deploy` (yoki entrypoint allaqachon ishlatadi).
@@ -203,7 +245,41 @@ docker compose -f docker-compose.prod.yml up -d
 
 ---
 
-## 5. Nginx / SSL xatolik bo‘lsa
+## 5. GitHub Actions: «unable to authenticate» (SSH)
+
+**Xato:** `ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain`
+
+**Sabab:** GitHub Actions serverga SSH orqali ulana olmayapti — kalit noto‘g‘ri yoki serverda public key yo‘q.
+
+**Nima qilish:**
+
+1. **`SSH_PRIVATE_KEY` secret mavjudmi?**  
+   Repo → Settings → Secrets and variables → Actions. `SSH_PRIVATE_KEY` bo‘lishi kerak.
+
+2. **Private key to‘liqmi?**  
+   Qiymat `-----BEGIN ... PRIVATE KEY-----` dan `-----END ... PRIVATE KEY-----` gacha bo‘lgan **barcha qatorlar**ni o‘z ichiga olishi kerak. Nusxalashda qatorlar yangilanmasa, kalit ishlamaydi.
+
+3. **Serverda public key bor-yo‘qligini tekshirish:**
+
+   ```bash
+   ssh root@157.245.231.33
+   cat ~/.ssh/authorized_keys
+   ```
+
+   GitHub’da ishlatayotgan **private** kalitga mos **public** kalit shu ro‘yxatda bo‘lishi kerak. Yo‘q bo‘lsa, 2.1 bo‘limidagi kabi yangi kalit yaratib, public qismini `authorized_keys` ga qo‘shing va private qismini `SSH_PRIVATE_KEY` ga qo‘ying.
+
+4. **Lokal tekshirish:**  
+   O‘sha private key fayli bilan serverga kirish ishlayotganini tekshiring:
+
+   ```bash
+   ssh -i ~/.ssh/eduhistory_deploy root@157.245.231.33
+   ```
+
+   Agar bu ishlasa, lekin Actions ishlamasa — GitHub’dagi secret matni fayldan nusxalangan bilan bir xil ekanligini (bo‘sh joylar, qatorlar) tekshiring.
+
+---
+
+## 6. Nginx / SSL xatolik bo‘lsa
 
 **Xato:** `open() "/etc/letsencrypt/options-ssl-nginx.conf" failed`
 
@@ -221,7 +297,7 @@ Agar repoda eski config qolgan bo‘lsa, `git pull` qilib keyin yuqoridagi `cp` 
 
 ---
 
-## 6. Xavfsizlik
+## 7. Xavfsizlik
 
 - `.env` ni hech qachon git’ga commit qilmang.
 - `NEXTAUTH_SECRET` va `POSTGRES_PASSWORD` ni kuchli va tashlab ketilmasdan saqlang.
