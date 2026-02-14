@@ -6,6 +6,8 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { getStorageProvider } from "@/lib/storage";
 import { validateUpload } from "@/lib/upload";
 
+const MAX_UPLOAD_MB = Number(process.env.MAX_UPLOAD_MB ?? 50);
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -18,7 +20,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Upload limitdan oshdingiz. Birozdan keyin urinib ko'ring." }, { status: 429 });
   }
 
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json(
+      { message: `Fayl hajmi ${MAX_UPLOAD_MB}MB dan oshmasligi kerak. So‘rov tanalmadi.` },
+      { status: 413 }
+    );
+  }
+
   const file = formData.get("file");
   const folder = String(formData.get("folder") ?? "general");
 
@@ -31,7 +42,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: validation.message }, { status: 400 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  let buffer: Buffer;
+  try {
+    buffer = Buffer.from(await file.arrayBuffer());
+  } catch {
+    return NextResponse.json({ message: "Faylni o‘qib bo‘lmadi." }, { status: 400 });
+  }
+
   const storage = getStorageProvider();
   const uploaded = await storage.upload({
     fileName: file.name,
