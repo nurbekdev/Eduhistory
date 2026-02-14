@@ -63,10 +63,10 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={goPrev} className="size-10 rounded-full p-0">
+          <Button variant="outline" size="sm" onClick={goPrev} className="size-10 rounded-full p-0 shrink-0">
             <ChevronLeft className="size-5" />
           </Button>
-          <Button variant="outline" size="sm" onClick={goNext} className="size-10 rounded-full p-0">
+          <Button variant="outline" size="sm" onClick={goNext} className="size-10 rounded-full p-0 shrink-0">
             <ChevronRight className="size-5" />
           </Button>
         </div>
@@ -85,26 +85,26 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
           {instructors.map((instructor) => (
             <div
               key={instructor.id}
-              className="flex-shrink-0 pr-2 last:pr-0 sm:pr-4"
+              className="flex min-w-[260px] shrink-0 pr-3 sm:min-w-[280px] sm:pr-4 md:min-w-[300px]"
               style={{ flex: `0 0 ${cardWidthPercent}%` }}
             >
               <Card className="group h-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg transition duration-300 hover:shadow-xl hover:border-emerald-200 dark:hover:border-emerald-800 sm:rounded-2xl">
-                {/* O‘lchovli rasm: balandlik o‘rta, chuzilish yo‘q */}
-                <div className="relative h-40 w-full overflow-hidden bg-slate-100 dark:bg-slate-700 sm:h-44 md:h-48">
+                {/* Pro: yuz markazda (object-center), o‘lchovli balandlik */}
+                <div className="relative h-44 w-full overflow-hidden bg-slate-100 dark:bg-slate-700 sm:h-48 md:h-52">
                   {instructor.imageUrl ? (
                     instructor.imageUrl.startsWith("http") || instructor.imageUrl.startsWith("/uploads/") ? (
                       <img
                         src={instructor.imageUrl}
                         alt={instructor.fullName}
-                        className="absolute inset-0 size-full object-cover object-top transition duration-300 group-hover:scale-105"
+                        className="absolute inset-0 size-full object-cover object-center transition duration-300 group-hover:scale-105"
                       />
                     ) : (
                       <Image
                         src={instructor.imageUrl}
                         alt={instructor.fullName}
                         fill
-                        className="object-cover object-top transition duration-300 group-hover:scale-105"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 280px"
+                        className="object-cover object-center transition duration-300 group-hover:scale-105"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
                       />
                     )
                   ) : (
