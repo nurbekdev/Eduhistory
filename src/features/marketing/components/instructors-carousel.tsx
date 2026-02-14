@@ -78,7 +78,7 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
               <Card className="group h-full overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg transition duration-300 hover:shadow-xl hover:border-emerald-200 dark:hover:border-emerald-800">
                 <div className="relative h-52 w-full overflow-hidden bg-slate-100 dark:bg-slate-700">
                   {instructor.imageUrl ? (
-                    instructor.imageUrl.startsWith("http") ? (
+                    instructor.imageUrl.startsWith("http") || instructor.imageUrl.startsWith("/uploads/") ? (
                       <img
                         src={instructor.imageUrl}
                         alt={instructor.fullName}

@@ -38,22 +38,33 @@ export function Avatar({ src, alt, size = "md", className = "", quality = 90, pr
   const sizeClass = sizeClasses[size];
   const px = sizePixels[size];
   const resolvedSrc = !src ? null : src;
+  const isLocalUpload = resolvedSrc?.startsWith("/uploads/");
 
   if (resolvedSrc) {
     return (
       <span
         className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 dark:bg-slate-600 ${sizeClass} ${className}`}
       >
-        <Image
-          src={resolvedSrc}
-          alt={alt}
-          width={px}
-          height={px}
-          sizes={size === "xl" ? "(max-width: 640px) 96px, 112px" : size === "lg" ? "56px" : size === "md" ? "44px" : "36px"}
-          quality={quality}
-          priority={priority}
-          className="h-full w-full object-cover"
-        />
+        {isLocalUpload ? (
+          <img
+            src={resolvedSrc}
+            alt={alt}
+            width={px}
+            height={px}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Image
+            src={resolvedSrc}
+            alt={alt}
+            width={px}
+            height={px}
+            sizes={size === "xl" ? "(max-width: 640px) 96px, 112px" : size === "lg" ? "56px" : size === "md" ? "44px" : "36px"}
+            quality={quality}
+            priority={priority}
+            className="h-full w-full object-cover"
+          />
+        )}
       </span>
     );
   }

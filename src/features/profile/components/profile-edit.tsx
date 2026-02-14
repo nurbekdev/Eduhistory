@@ -190,7 +190,7 @@ export function ProfileEdit({
           <div className="relative">
             <div className="relative size-24 overflow-hidden rounded-full border-2 border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700">
               {imageUrl ? (
-                imageUrl.startsWith("http") ? (
+                imageUrl.startsWith("http") || imageUrl.startsWith("/uploads/") ? (
                   <img src={imageUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <Image
