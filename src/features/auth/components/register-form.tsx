@@ -62,11 +62,11 @@ export function RegisterForm() {
   });
 
   return (
-    <Card className="mx-auto w-full max-w-md border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-xl backdrop-blur">
-      <CardHeader className="pb-3 text-center">
-        <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100">Ro'yxatdan o'tish</CardTitle>
+    <Card className="mx-auto w-full min-w-0 max-w-md border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-xl backdrop-blur">
+      <CardHeader className="px-4 pb-3 pt-4 text-center sm:px-6">
+        <CardTitle className="text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">Ro&apos;yxatdan o&apos;tish</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6">
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1">
             <label htmlFor="fullName" className="text-sm font-medium text-slate-700 dark:text-slate-200">

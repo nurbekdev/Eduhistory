@@ -114,29 +114,29 @@ export default async function LandingPage() {
   }));
 
   return (
-    <PageContainer className="space-y-14 pb-16">
+    <PageContainer className="min-w-0 space-y-10 pb-12 sm:space-y-14 sm:pb-16">
       <Reveal>
-        <section className="relative overflow-hidden rounded-2xl border border-emerald-100 dark:border-emerald-900 bg-gradient-to-br from-white via-emerald-50 to-teal-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 px-6 py-10 shadow-xl sm:px-10 sm:py-14">
+        <section className="relative overflow-hidden rounded-xl border border-emerald-100 dark:border-emerald-900 bg-gradient-to-br from-white via-emerald-50 to-teal-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 px-4 py-8 shadow-xl sm:rounded-2xl sm:px-10 sm:py-14">
           <div className="animate-float-slow absolute -left-16 top-10 size-48 rounded-full bg-emerald-200/50 dark:bg-emerald-900/30 blur-3xl" />
           <div className="animate-float-medium absolute -right-10 -top-10 size-56 rounded-full bg-teal-200/50 dark:bg-teal-900/30 blur-3xl" />
           <div className="animate-float-fast absolute bottom-4 right-1/3 size-24 rounded-full bg-emerald-300/40 dark:bg-emerald-800/40 blur-2xl" />
 
-          <div className="relative grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-6">
+          <div className="relative grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
+            <div className="min-w-0 space-y-5 sm:space-y-6">
               <Badge className="gap-1 border border-emerald-200 dark:border-emerald-800 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
                 <Sparkles className="size-3.5" />
                 {t("home.hero.badge")}
               </Badge>
-              <h1 className="max-w-2xl text-4xl font-bold leading-tight tracking-tight text-slate-900 dark:text-slate-100 sm:text-5xl">
+              <h1 className="max-w-2xl text-3xl font-bold leading-tight tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl md:text-5xl">
                 {t("home.hero.title")}
               </h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-400 sm:text-lg">
+              <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-400 sm:text-base sm:leading-7 sm:text-lg">
                 {t("home.hero.subtitle")} Ro&apos;yxatdan o&apos;ting — bepul. Bugun kurslarga yozilib o&apos;qishni boshlang.
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 <Button
                   asChild
-                  className="group h-12 w-full bg-gradient-to-r from-emerald-600 to-teal-500 px-6 text-white shadow-lg transition duration-200 hover:scale-[1.02] hover:shadow-xl sm:w-auto"
+                  className="group h-11 w-full bg-gradient-to-r from-emerald-600 to-teal-500 px-5 text-sm text-white shadow-lg transition duration-200 hover:scale-[1.02] hover:shadow-xl sm:h-12 sm:w-auto sm:px-6 sm:text-base"
                 >
                   <Link href="/royxatdan-otish" className="inline-flex items-center justify-center font-semibold">
                     Bepul ro&apos;yxatdan o&apos;tish
@@ -146,7 +146,7 @@ export default async function LandingPage() {
                 <Button
                   asChild
                   variant="outline"
-                  className="group h-12 w-full border-emerald-200 dark:border-emerald-700 bg-white/80 dark:bg-slate-800/80 text-emerald-700 dark:text-emerald-300 transition duration-200 hover:scale-[1.02] hover:bg-emerald-50 dark:hover:bg-emerald-900/30 sm:w-auto"
+                  className="group h-11 w-full border-emerald-200 dark:border-emerald-700 bg-white/80 dark:bg-slate-800/80 text-sm text-emerald-700 dark:text-emerald-300 transition duration-200 hover:scale-[1.02] hover:bg-emerald-50 dark:hover:bg-emerald-900/30 sm:h-12 sm:w-auto sm:text-base"
                 >
                   <Link href="/kurslar" className="inline-flex items-center justify-center">
                     {t("home.hero.courses")}
@@ -155,21 +155,21 @@ export default async function LandingPage() {
                 <Button
                   asChild
                   variant="ghost"
-                  className="h-12 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                  className="h-11 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 sm:h-12"
                 >
                   <Link href="/kirish">Akkauntingiz bormi? Kirish</Link>
                 </Button>
               </div>
             </div>
 
-            <div className="relative">
-              <Card className="rounded-2xl border border-white/60 dark:border-slate-600 bg-white/90 dark:bg-slate-800/90 shadow-xl backdrop-blur">
-                <CardHeader className="space-y-1">
-                  <CardTitle className="text-lg text-slate-900 dark:text-slate-100">Eduhistory boshqaruv paneli</CardTitle>
-                  <CardDescription className="text-slate-600 dark:text-slate-400">Kurslar, progress va analitika real vaqtga yaqin</CardDescription>
+            <div className="relative min-w-0">
+              <Card className="rounded-xl border border-white/60 dark:border-slate-600 bg-white/90 dark:bg-slate-800/90 shadow-xl backdrop-blur sm:rounded-2xl">
+                <CardHeader className="space-y-1 p-4 sm:p-6">
+                  <CardTitle className="text-base text-slate-900 dark:text-slate-100 sm:text-lg">Eduhistory boshqaruv paneli</CardTitle>
+                  <CardDescription className="text-xs text-slate-600 dark:text-slate-400 sm:text-sm">Kurslar, progress va analitika real vaqtga yaqin</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
+                <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+                  <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
                     <div className="rounded-xl border border-emerald-100 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 p-3">
                       <p className="text-xs text-slate-600 dark:text-slate-400">Faol kurslar</p>
                       <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">32</p>
@@ -198,23 +198,23 @@ export default async function LandingPage() {
       </Reveal>
 
       <Reveal>
-        <section className="grid gap-3 rounded-2xl border border-emerald-100 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-xl sm:grid-cols-2 lg:grid-cols-4 sm:p-6">
+        <section className="grid grid-cols-2 gap-2 rounded-xl border border-emerald-100 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-xl sm:grid-cols-2 sm:gap-3 sm:rounded-2xl sm:p-6 lg:grid-cols-4">
           {getStats(t).map((item, idx) => (
             <Reveal key={item.label} delayMs={idx * 80}>
-              <div className="rounded-xl border border-slate-100 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 p-4 text-center transition duration-300 hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800">
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{item.value}</p>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{item.label}</p>
+              <div className="rounded-lg border border-slate-100 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 p-3 text-center transition duration-300 hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800 sm:rounded-xl sm:p-4">
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 sm:text-3xl">{item.value}</p>
+                <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400 sm:mt-1 sm:text-sm">{item.label}</p>
               </div>
             </Reveal>
           ))}
         </section>
       </Reveal>
 
-      <section className="space-y-5">
+      <section className="min-w-0 space-y-4 sm:space-y-5">
         <div className="flex items-end justify-between">
-          <h2 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">{t("home.features.title")}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">{t("home.features.title")}</h2>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           {features.map((feature, index) => (
             <Reveal key={feature.title} delayMs={index * 60}>
               <TiltCard>
@@ -233,10 +233,10 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <section className="space-y-5">
+      <section className="min-w-0 space-y-4 sm:space-y-5">
         <Reveal>
-          <div className="flex items-end justify-between">
-            <h2 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Kurslar</h2>
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">Kurslar</h2>
           {coursesForCarousel.length > 0 && (
             <Badge className="border border-emerald-200 dark:border-emerald-800 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
               Yangi kurslar
@@ -249,10 +249,10 @@ export default async function LandingPage() {
         </Reveal>
       </section>
 
-      <section className="space-y-5">
+      <section className="min-w-0 space-y-4 sm:space-y-5">
         <Reveal>
           <div className="flex items-end justify-between">
-            <h2 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
               Bizning ustozlar
             </h2>
           </div>
@@ -263,20 +263,20 @@ export default async function LandingPage() {
       </section>
 
       <Reveal>
-        <section className="rounded-2xl border border-emerald-100 dark:border-emerald-800 bg-gradient-to-r from-emerald-600 to-teal-500 p-6 shadow-xl sm:p-10">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-2">
-              <h2 className="text-3xl font-bold text-white sm:text-4xl">
+        <section className="rounded-xl border border-emerald-100 dark:border-emerald-800 bg-gradient-to-r from-emerald-600 to-teal-500 p-4 shadow-xl sm:rounded-2xl sm:p-10">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div className="min-w-0 space-y-2">
+              <h2 className="text-2xl font-bold text-white sm:text-3xl md:text-4xl">
                 Eduhistory bilan o&apos;qishni bugun boshlang
               </h2>
-              <p className="max-w-xl text-lg text-emerald-50">
+              <p className="max-w-xl text-sm text-emerald-50 sm:text-base md:text-lg">
                 Ro&apos;yxatdan o&apos;ting, kurslarga yoziling va sertifikat oling. Bepul hisob ochish bir necha soniya.
               </p>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
               <Button
                 asChild
-                className="h-12 bg-white px-8 text-base font-semibold text-emerald-700 transition duration-200 hover:scale-[1.02] hover:bg-emerald-50 sm:w-auto"
+                className="h-11 w-full bg-white px-6 text-sm font-semibold text-emerald-700 transition duration-200 hover:scale-[1.02] hover:bg-emerald-50 sm:h-12 sm:w-auto sm:px-8 sm:text-base"
               >
                 <Link href="/royxatdan-otish">Bepul ro&apos;yxatdan o&apos;tish</Link>
               </Button>

@@ -99,7 +99,7 @@ nginx -t && systemctl reload nginx
 So‘ng **certbot** orqali SSL oling (domen serverga yo‘naltirilgan bo‘lishi kerak):
 
 ```bash
-certbot --nginx -d eduhistory.uz -d www.eduhistory.uz
+ 
 ```
 
 Certbot configni o‘zi o‘zgartirib, HTTPS qo‘shadi. Qayta reload kerak bo‘lmasa ham certbot nginx ni reload qiladi.
@@ -339,3 +339,23 @@ Agar repoda eski config qolgan bo‘lsa, `git pull` qilib keyin yuqoridagi `cp` 
 - `.env` ni hech qachon git’ga commit qilmang.
 - `NEXTAUTH_SECRET` va `POSTGRES_PASSWORD` ni kuchli va tashlab ketilmasdan saqlang.
 - Serverda firewall: faqat 22 (SSH), 80 (HTTP), 443 (HTTPS) ochiq bo‘lsin; 3000 port faqat localhost’da (Nginx orqali).
+
+---
+
+## 9. Tuzatishlarni tekshirish (uploads 404 va Dars qo'shish)
+
+Deploy dan keyin quyidagilarni tekshiring.
+
+### 9.1 Uploads (profil rasmi va boshqa fayllar)
+
+- Brauzerda oching: `https://eduhistory.uz/uploads/avatars/<mavjud-fayl>.jpg` — **200** va rasm ko‘rinishi kerak.
+- Yoki serverda: `curl -I https://eduhistory.uz/uploads/avatars/<fayl>.jpg` — `HTTP/2 200`.
+
+Agar 404 bo‘lsa: container ichida `public/uploads/avatars` da fayl borligini tekshiring:  
+`docker exec <app_container> ls public/uploads/avatars`
+
+### 9.2 Dars qo'shish (kurs builder)
+
+1. **Boshqaruv** → **Kurslar** → kerakli kursni **Tahrirlash**.
+2. Modulni **Ochish**, keyin **"Dars qo'shish"** tugmasini bosing.
+3. Yangi dars ro‘yxatda paydo bo‘lishi kerak (sarlavha bo‘sh qoldirilsa **"Yangi dars"** deb yoziladi).

@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { Zap } from "lucide-react";
 
 import { ThemeToggle, LocaleSwitcher } from "@/components/layout/header-actions";
+import { MobileNavMenu } from "@/components/layout/mobile-nav-menu";
 import { UserMenuDropdown } from "@/components/layout/user-menu-dropdown";
 import { Button } from "@/components/ui/button";
 import { NotificationDropdown } from "@/features/notifications/components/notification-dropdown";
@@ -63,7 +64,8 @@ export async function MainHeader({ locale }: MainHeaderProps) {
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
+        <MobileNavMenu links={[...publicLinks, ...roleLinks]} />
+        <div className="flex min-w-0 items-center gap-1 sm:gap-2">
           {session?.user && <NotificationDropdown userRole={role ?? Role.STUDENT} />}
           <ThemeToggle />
           <LocaleSwitcher
@@ -99,10 +101,10 @@ export async function MainHeader({ locale }: MainHeaderProps) {
             </>
           ) : (
             <>
-              <Button asChild variant="ghost" size="sm">
+              <Button asChild variant="ghost" size="sm" className="shrink-0 px-2 text-xs sm:px-3 sm:text-sm">
                 <Link href="/kirish">{t("nav.login")}</Link>
               </Button>
-              <Button asChild size="sm" className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-md">
+              <Button asChild size="sm" className="shrink-0 bg-gradient-to-r from-emerald-600 to-teal-500 px-2 text-xs text-white shadow-md sm:px-3 sm:text-sm">
                 <Link href="/royxatdan-otish">{t("nav.register")}</Link>
               </Button>
             </>

@@ -6,8 +6,8 @@ const currentYear = new Date().getFullYear();
 export function Footer() {
   return (
     <footer className="border-t border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/90">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto max-w-6xl min-w-0 px-3 py-8 sm:px-6 sm:py-10">
+        <div className="grid gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
           <div>
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Sahifa
@@ -89,11 +89,11 @@ export function Footer() {
             </p>
           </div>
         </div>
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-8 dark:border-slate-700 sm:flex-row">
-          <p className="text-center text-sm text-slate-600 dark:text-slate-400">
+        <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-6 dark:border-slate-700 sm:mt-10 sm:flex-row sm:gap-4 sm:pt-8">
+          <p className="text-center text-xs text-slate-600 dark:text-slate-400 sm:text-sm">
             © {currentYear} Eduhistory. Barcha huquqlar himoyalangan.
           </p>
-          <p className="text-center text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-center text-xs text-slate-600 dark:text-slate-400 sm:text-sm">
             Developer by{" "}
             <a
               href="https://t.me/npgoo"

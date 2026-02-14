@@ -80,7 +80,7 @@ export default async function RootLayout({
         />
         <AppProviders>
           <div
-            className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+            className="flex min-h-screen flex-col overflow-x-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100"
             suppressHydrationWarning
           >
             <Suspense

@@ -242,15 +242,15 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
 
   const createLesson = async (moduleId: string) => {
     const draft = draftForModule(moduleId);
-    if (!draft.title.trim() || !draft.description.trim()) {
-      toast.error("Dars nomi va tavsifini kiriting.");
-      return;
-    }
+    const title = draft.title.trim() || "Yangi dars";
+    const description = draft.description.trim() || "Dars tavsifi";
     const response = await fetch(`/api/modules/${moduleId}/lessons`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...draft,
+        title,
+        description,
       }),
     });
     if (!response.ok) {
@@ -739,7 +739,7 @@ export function CourseBuilder({ courseId }: CourseBuilderProps) {
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <Button onClick={() => createLesson(moduleItem.id)}>Dars qo'shish</Button>
+                      <Button type="button" onClick={() => createLesson(moduleItem.id)}>Dars qo'shish</Button>
                     </div>
                   </div>
                 </div>

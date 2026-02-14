@@ -30,10 +30,23 @@ function getCourseImage(category: string, coverImageUrl?: string | null) {
   return "/images/it.jpg";
 }
 
-const CARDS_PER_PAGE = 3;
+function useCardsPerPage() {
+  const [n, setN] = useState(1);
+  useEffect(() => {
+    const up = () => {
+      const w = window.innerWidth;
+      setN(w >= 1024 ? 3 : w >= 640 ? 2 : 1);
+    };
+    up();
+    window.addEventListener("resize", up);
+    return () => window.removeEventListener("resize", up);
+  }, []);
+  return n;
+}
 
 export function CoursesCarousel({ courses }: { courses: CourseItem[] }) {
-  const totalPages = Math.max(1, Math.ceil(courses.length / CARDS_PER_PAGE));
+  const cardsPerPage = useCardsPerPage();
+  const totalPages = Math.max(1, Math.ceil(courses.length / cardsPerPage));
   const [pageIndex, setPageIndex] = useState(0);
 
   const goNext = () => setPageIndex((i) => (i + 1) % totalPages);
@@ -56,7 +69,7 @@ export function CoursesCarousel({ courses }: { courses: CourseItem[] }) {
     );
   }
 
-  const isMultiPage = courses.length > CARDS_PER_PAGE;
+  const isMultiPage = courses.length > cardsPerPage;
   const trackWidthPercent = isMultiPage ? totalPages * 100 : 100;
   const cardWidthPercent = 100 / courses.length;
   const translateXPercent = isMultiPage ? -(pageIndex * (100 / totalPages)) : 0;
@@ -87,17 +100,17 @@ export function CoursesCarousel({ courses }: { courses: CourseItem[] }) {
           {courses.map((course) => (
             <div
               key={course.id}
-              className="flex-shrink-0 pr-4 last:pr-0"
+              className="flex-shrink-0 pr-2 last:pr-0 sm:pr-4"
               style={{ flex: `0 0 ${cardWidthPercent}%` }}
             >
-              <Card className="group h-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md transition duration-300 hover:scale-[1.01] hover:shadow-xl">
-                <CardContent className="space-y-4 p-5">
-                  <div className="overflow-hidden rounded-xl">
+              <Card className="group h-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md transition duration-300 hover:scale-[1.01] hover:shadow-xl sm:rounded-2xl">
+                <CardContent className="space-y-3 p-4 sm:space-y-4 sm:p-5">
+                  <div className="overflow-hidden rounded-lg sm:rounded-xl">
                     {course.image.startsWith("http") ? (
                       <img
                         src={course.image}
                         alt=""
-                        className="h-40 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                        className="h-32 w-full object-cover transition duration-300 group-hover:scale-[1.03] sm:h-40"
                       />
                     ) : (
                       <Image
@@ -105,12 +118,12 @@ export function CoursesCarousel({ courses }: { courses: CourseItem[] }) {
                         alt=""
                         width={640}
                         height={280}
-                        className="h-40 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                        className="h-32 w-full object-cover transition duration-300 group-hover:scale-[1.03] sm:h-40"
                       />
                     )}
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{course.title}</h3>
+                    <h3 className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-slate-100 sm:text-lg">{course.title}</h3>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-700 px-2 py-1">
                         <Layers3 className="size-3.5" />

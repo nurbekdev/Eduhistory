@@ -17,11 +17,24 @@ export type InstructorItem = {
   linkedinUrl: string | null;
 };
 
-const CARDS_PER_PAGE = 3;
+function useCardsPerPage() {
+  const [n, setN] = useState(1);
+  useEffect(() => {
+    const up = () => {
+      const w = window.innerWidth;
+      setN(w >= 1024 ? 3 : w >= 640 ? 2 : 1);
+    };
+    up();
+    window.addEventListener("resize", up);
+    return () => window.removeEventListener("resize", up);
+  }, []);
+  return n;
+}
 
 export function InstructorsCarousel({ instructors }: { instructors: InstructorItem[] }) {
   const count = instructors.length;
-  const totalPages = Math.max(1, Math.ceil(count / CARDS_PER_PAGE));
+  const cardsPerPage = useCardsPerPage();
+  const totalPages = Math.max(1, Math.ceil(count / cardsPerPage));
   const [pageIndex, setPageIndex] = useState(0);
 
   const goNext = () => setPageIndex((i) => (i + 1) % totalPages);
@@ -41,7 +54,7 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
     );
   }
 
-  const isMultiPage = count > CARDS_PER_PAGE;
+  const isMultiPage = count > cardsPerPage;
   const trackWidthPercent = isMultiPage ? totalPages * 100 : 100;
   const cardWidthPercent = 100 / count;
   const translateXPercent = isMultiPage ? -(pageIndex * (100 / totalPages)) : 0;
@@ -72,11 +85,11 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
           {instructors.map((instructor) => (
             <div
               key={instructor.id}
-              className="flex-shrink-0 pr-4 last:pr-0"
+              className="flex-shrink-0 pr-2 last:pr-0 sm:pr-4"
               style={{ flex: `0 0 ${cardWidthPercent}%` }}
             >
-              <Card className="group h-full overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg transition duration-300 hover:shadow-xl hover:border-emerald-200 dark:hover:border-emerald-800">
-                <div className="relative h-52 w-full overflow-hidden bg-slate-100 dark:bg-slate-700">
+              <Card className="group h-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg transition duration-300 hover:shadow-xl hover:border-emerald-200 dark:hover:border-emerald-800 sm:rounded-2xl">
+                <div className="relative h-40 w-full overflow-hidden bg-slate-100 dark:bg-slate-700 sm:h-52">
                   {instructor.imageUrl ? (
                     instructor.imageUrl.startsWith("http") || instructor.imageUrl.startsWith("/uploads/") ? (
                       <img
@@ -99,10 +112,10 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
                     </span>
                   )}
                 </div>
-                <CardContent className="flex flex-col p-5">
+                <CardContent className="flex flex-col p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">
                         {instructor.fullName}
                       </h3>
                       {(instructor.workplace || instructor.bio) && (
