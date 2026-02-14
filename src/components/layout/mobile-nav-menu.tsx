@@ -33,29 +33,29 @@ export function MobileNavMenu({ links }: { links: NavLink[] }) {
             onClick={() => setOpen(false)}
           />
           <div
-            className="fixed top-0 right-0 z-50 flex h-full w-full max-w-[min(20rem,85vw)] flex-col border-l border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900 md:hidden"
+            className="fixed top-0 right-0 z-50 flex h-full w-full max-w-[min(20rem,85vw)] flex-col border-l border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900 md:hidden h-[100dvh]"
             role="dialog"
             aria-label="Navigatsiya menyusi"
           >
-            <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-700">
-              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Menyu</span>
+            <div className="flex h-14 min-h-[3.5rem] shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-700">
+              <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Menyu</span>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-10"
+                className="size-11 min-h-[2.75rem] min-w-[2.75rem] touch-manipulation"
                 onClick={() => setOpen(false)}
                 aria-label="Menyuni yopish"
               >
                 <X className="size-5" />
               </Button>
             </div>
-            <nav className="flex flex-1 flex-col gap-1 overflow-auto p-4">
+            <nav className="flex flex-1 flex-col gap-0.5 overflow-auto p-3">
               {links.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="rounded-lg px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="rounded-xl px-4 py-3.5 text-base font-medium text-slate-700 transition hover:bg-slate-100 active:bg-slate-200 dark:text-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 touch-manipulation"
                   onClick={() => setOpen(false)}
                 >
                   {link.label}

@@ -75,10 +75,10 @@ export function UserMenuDropdown({ imageUrl, role, labels, locale }: UserMenuDro
         <Avatar src={imageUrl ?? undefined} alt="" size="sm" />
       </Button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-64 origin-top-right rounded-xl border border-slate-200 bg-white py-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+        <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] origin-top-right rounded-xl border border-slate-200 bg-white py-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
           <Link
             href="/profil"
-            className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 active:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 md:py-2.5"
             onClick={() => setOpen(false)}
           >
             <User className="size-4 shrink-0 text-slate-500" />
@@ -86,7 +86,7 @@ export function UserMenuDropdown({ imageUrl, role, labels, locale }: UserMenuDro
           </Link>
           <Link
             href="/kurslar"
-            className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 active:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 md:py-2.5"
             onClick={() => setOpen(false)}
           >
             <LayoutGrid className="size-4 shrink-0 text-slate-500" />
@@ -95,7 +95,7 @@ export function UserMenuDropdown({ imageUrl, role, labels, locale }: UserMenuDro
           {!isManagement && (
             <Link
               href="/mening-kurslarim"
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 active:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 md:py-2.5"
               onClick={() => setOpen(false)}
             >
               <BookOpen className="size-4 shrink-0 text-slate-500" />
@@ -104,7 +104,7 @@ export function UserMenuDropdown({ imageUrl, role, labels, locale }: UserMenuDro
           )}
           <Link
             href="/sertifikatlar"
-            className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 active:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 md:py-2.5"
             onClick={() => setOpen(false)}
           >
             <Award className="size-4 shrink-0 text-slate-500" />
@@ -114,7 +114,7 @@ export function UserMenuDropdown({ imageUrl, role, labels, locale }: UserMenuDro
             <>
               <Link
                 href="/boshqaruv"
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 active:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 md:py-2.5"
                 onClick={() => setOpen(false)}
               >
                 <Settings className="size-4 shrink-0 text-slate-500" />
@@ -122,7 +122,7 @@ export function UserMenuDropdown({ imageUrl, role, labels, locale }: UserMenuDro
               </Link>
               <Link
                 href="/boshqaruv/analitika"
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 active:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 md:py-2.5"
                 onClick={() => setOpen(false)}
               >
                 <LayoutGrid className="size-4 shrink-0 text-slate-500" />
@@ -131,12 +131,12 @@ export function UserMenuDropdown({ imageUrl, role, labels, locale }: UserMenuDro
             </>
           )}
           <div className="my-2 border-t border-slate-100 dark:border-slate-700" />
-          <div className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-400">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm text-slate-600 dark:text-slate-400 md:py-2.5">
             <span className="flex items-center gap-3">
               <Sun className="size-4 shrink-0 text-slate-500" />
               {labels.language}
             </span>
-            <div className="flex rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-0.5">
+            <div className="flex shrink-0 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-0.5">
               <button
                 type="button"
                 onClick={() => setLocale("uz")}
@@ -153,12 +153,12 @@ export function UserMenuDropdown({ imageUrl, role, labels, locale }: UserMenuDro
               </button>
             </div>
           </div>
-          <div className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-400">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm text-slate-600 dark:text-slate-400 md:py-2.5">
             <span className="flex items-center gap-3">
               {resolvedTheme === "dark" ? <Moon className="size-4 shrink-0 text-slate-500" /> : <Sun className="size-4 shrink-0 text-slate-500" />}
               {labels.themeSettings}
             </span>
-            <div className="flex rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-0.5">
+            <div className="flex shrink-0 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-0.5">
               <button
                 type="button"
                 onClick={() => setTheme("light")}
@@ -178,7 +178,7 @@ export function UserMenuDropdown({ imageUrl, role, labels, locale }: UserMenuDro
           <div className="my-2 border-t border-slate-100 dark:border-slate-700" />
           <button
             type="button"
-            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="flex w-full items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 active:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 md:py-2.5"
             onClick={() => {
               setOpen(false);
               void signOut({ redirect: false }).then(() => {

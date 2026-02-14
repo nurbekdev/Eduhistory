@@ -89,25 +89,26 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
               style={{ flex: `0 0 ${cardWidthPercent}%` }}
             >
               <Card className="group h-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg transition duration-300 hover:shadow-xl hover:border-emerald-200 dark:hover:border-emerald-800 sm:rounded-2xl">
-                <div className="relative h-40 w-full overflow-hidden bg-slate-100 dark:bg-slate-700 sm:h-52">
+                {/* Pro darajada: 3:4 portrait, object-cover + center top – chuzilish va kesilish yo‘q */}
+                <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100 dark:bg-slate-700">
                   {instructor.imageUrl ? (
                     instructor.imageUrl.startsWith("http") || instructor.imageUrl.startsWith("/uploads/") ? (
                       <img
                         src={instructor.imageUrl}
                         alt={instructor.fullName}
-                        className="size-full object-cover object-top transition duration-300 group-hover:scale-105"
+                        className="absolute inset-0 size-full object-cover object-top transition duration-300 group-hover:scale-105"
                       />
                     ) : (
                       <Image
                         src={instructor.imageUrl}
                         alt={instructor.fullName}
                         fill
-                        className="size-full object-cover object-top transition duration-300 group-hover:scale-105"
-                        sizes="(max-width: 768px) 100vw, 280px"
+                        className="object-cover object-top transition duration-300 group-hover:scale-105"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 280px"
                       />
                     )
                   ) : (
-                    <span className="flex h-full w-full items-center justify-center text-4xl font-semibold text-slate-400 dark:text-slate-500">
+                    <span className="absolute inset-0 flex items-center justify-center text-4xl font-semibold text-slate-400 dark:text-slate-500">
                       {instructor.fullName.charAt(0)}
                     </span>
                   )}

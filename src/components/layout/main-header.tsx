@@ -67,11 +67,14 @@ export async function MainHeader({ locale }: MainHeaderProps) {
         <MobileNavMenu links={[...publicLinks, ...roleLinks]} />
         <div className="flex min-w-0 items-center gap-1 sm:gap-2">
           {session?.user && <NotificationDropdown userRole={role ?? Role.STUDENT} />}
-          <ThemeToggle />
-          <LocaleSwitcher
-            currentLocale={locale}
-            labels={{ uz: "O'zbek", en: "EN" }}
-          />
+          {/* Til va tema faqat desktopda headerda; mobilda profil menyusida */}
+          <div className="hidden items-center gap-1 md:flex">
+            <ThemeToggle />
+            <LocaleSwitcher
+              currentLocale={locale}
+              labels={{ uz: "O'zbek", en: "EN" }}
+            />
+          </div>
           {session?.user ? (
             <>
               <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-2.5 py-1.5 dark:border-amber-800 dark:bg-amber-950/50">
