@@ -230,9 +230,46 @@ Natijada yangi kod serverda ishga tushadi va **https://eduhistory.uz** da yangil
 
 ---
 
-## 4. Foydali buyruqlar
+## 4. Deploydan keyin tekshirish
+
+### 4.1 Serverda (SSH orqali)
 
 ```bash
+ssh root@157.245.231.33
+cd /var/www/Eduhistory
+docker compose -f docker-compose.prod.yml ps    # konteynerlar ishlayaptimi
+curl -sI http://127.0.0.1:3000                  # app javob beryaptimi (200 OK)
+```
+
+### 4.2 DNS tarqalmaguncha (domen hali server IP ga yo‘nalmagan bo‘lsa)
+
+- **IP orqali:** brauzerda `http://157.245.231.33` oching. Sayt ochilishi mumkin, lekin NextAuth/login domen uchun sozlangan bo‘lgani uchun to‘liq ishlamasligi mumkin.
+- **Domenni tez tekshirish — hosts fayli:**  
+  Lokal kompyuteringizda domenni qo‘lda server IP ga yo‘naltirib, brauzerda **https://eduhistory.uz** ni ochishingiz mumkin:
+
+  **Mac/Linux:**  
+  `sudo nano /etc/hosts` — qator qo‘shing:  
+  `157.245.231.33 eduhistory.uz www.eduhistory.uz`  
+  Saqlang. Brauzerda https://eduhistory.uz oching (SSL sertifikat domen uchun bo‘lgani uchun ishlashi kerak). Tekshirib bo‘lgach, bu qatorni o‘chirib qo‘yishingiz mumkin.
+
+  **Windows:**  
+  `C:\Windows\System32\drivers\etc\hosts` ni Administrator sifatida oching, xuddi shu qatorni qo‘shing.
+
+DNS 24–48 soat ichida tarqaladi. Tarqalgach, hosts o‘zgartirishini olib tashlasangiz, domen o‘zi serverga yo‘naladi.
+
+### 4.3 Domen tarqalgach
+
+Brauzerda **https://eduhistory.uz** ochib, kirish, kurslar, dashboard sahifalarini tekshiring.
+
+---
+
+## 5. Foydali buyruqlar (serverda)
+
+**Barcha `docker compose` buyruqlarini loyiha papkasida bajarish kerak:** `cd /var/www/Eduhistory`
+
+```bash
+cd /var/www/Eduhistory
+
 # Loglarni ko‘rish
 docker compose -f docker-compose.prod.yml logs -f app
 
@@ -245,7 +282,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 ---
 
-## 5. GitHub Actions: «unable to authenticate» (SSH)
+## 6. GitHub Actions: «unable to authenticate» (SSH)
 
 **Xato:** `ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain`
 
@@ -279,7 +316,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 ---
 
-## 6. Nginx / SSL xatolik bo‘lsa
+## 7. Nginx / SSL xatolik bo‘lsa
 
 **Xato:** `open() "/etc/letsencrypt/options-ssl-nginx.conf" failed`
 
@@ -297,7 +334,7 @@ Agar repoda eski config qolgan bo‘lsa, `git pull` qilib keyin yuqoridagi `cp` 
 
 ---
 
-## 7. Xavfsizlik
+## 8. Xavfsizlik
 
 - `.env` ni hech qachon git’ga commit qilmang.
 - `NEXTAUTH_SECRET` va `POSTGRES_PASSWORD` ni kuchli va tashlab ketilmasdan saqlang.

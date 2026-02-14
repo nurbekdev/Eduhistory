@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { getSession, signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -27,7 +26,6 @@ function getDefaultRouteByRole(role: string | undefined) {
 }
 
 export function LoginForm() {
-  const router = useRouter();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -42,24 +40,26 @@ export function LoginForm() {
       redirect: false,
     });
 
-    if (response?.error) {
-      toast.error("Kirish amalga oshmadi. Ma'lumotlarni tekshiring.");
+    // Muvaffaqiyat faqat ok: true va xato yo‘q bo‘lsa (noto‘g‘ri parol/email da NextAuth error qaytaradi)
+    if (!response || response.error || response.ok === false) {
+      toast.error("Kirish amalga oshmadi. Email yoki parol noto‘g‘ri.");
       return;
     }
+
+    toast.success("Muvaffaqiyatli kirdingiz.");
 
     const nextPath =
       typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null;
     if (nextPath?.startsWith("/")) {
-      toast.success("Muvaffaqiyatli kirdingiz.");
-      router.push(nextPath);
-      router.refresh();
+      window.location.href = nextPath;
       return;
     }
 
+    // Kichik kutish: session cookie yozilishi uchun, keyin to‘liq sahifa yo‘naltirish (middleware cookie ko‘radi)
+    await new Promise((r) => setTimeout(r, 100));
     const session = await getSession();
-    toast.success("Muvaffaqiyatli kirdingiz.");
-    router.push(getDefaultRouteByRole(session?.user?.role));
-    router.refresh();
+    const path = getDefaultRouteByRole(session?.user?.role) ?? "/dashboard";
+    window.location.href = path;
   });
 
   return (

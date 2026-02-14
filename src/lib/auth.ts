@@ -60,6 +60,11 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
+    redirect({ url, baseUrl }) {
+      const path = new URL(url, baseUrl).pathname;
+      if (path.startsWith("/") && !path.startsWith("//")) return `${baseUrl}${path}`;
+      return baseUrl;
+    },
     async jwt({ token, user }) {
       if (user) {
         const u = user as { role?: Role; image?: string };
