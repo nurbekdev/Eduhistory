@@ -1,13 +1,51 @@
+# Dependencies and build outputs (reinstalled/generated in image)
 node_modules
 .next
+.nuxt
+dist
+coverage
+.cache
+
+# Version control and IDE
 .git
+.gitignore
+.gitattributes
+
+# Env and secrets (never in image)
 .env
 .env.*
 !.env.example
 !.env.production.example
+
+# Uploads and runtime data (mounted at runtime in prod)
+uploads
+public/uploads
+
+# Logs and temp
+*.log
+tmp
+temp
+.tmp
+.temp
+
+# OS and misc
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Docs and CI (not needed for build)
 *.md
 docs
 .github
 Dockerfile
 docker-compose*.yml
 .dockerignore
+
+# Optional: tests and dev tooling (uncomment if present and not needed for build)
+# __tests__
+# *.test.ts
+# *.spec.ts
+# .eslintrc*
+# .prettierrc*

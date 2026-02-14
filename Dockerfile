@@ -8,21 +8,24 @@ RUN npm run prisma:generate
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
-# Production: multi-stage build
+# Production: multi-stage build (use BuildKit for cache: DOCKER_BUILDKIT=1)
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 COPY . .
 RUN npm run prisma:generate
-RUN npm run build
+RUN --mount=type=cache,target=/app/.next/cache \
+    npm run build
 
 FROM node:22-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
-RUN npm ci --omit=dev && npx prisma generate
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev && npx prisma generate
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.ts ./
