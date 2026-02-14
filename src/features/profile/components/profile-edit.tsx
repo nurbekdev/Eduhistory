@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -34,9 +34,14 @@ export function ProfileEdit({
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const [fullName, setFullName] = useState(initialFullName);
   const [uploading, setUploading] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  useEffect(() => {
+    setImageUrl(initialImageUrl);
+    setImageLoadError(false);
+  }, [initialImageUrl]);
   const [savingInstructor, setSavingInstructor] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [bio, setBio] = useState(instructorProfile?.bio ?? "");
@@ -125,6 +130,7 @@ export function ProfileEdit({
       });
       if (!patchRes.ok) throw new Error("Profil yangilanmadi.");
       setImageUrl(fileUrl);
+      setImageLoadError(false);
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -189,9 +195,14 @@ export function ProfileEdit({
         <CardContent className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
           <div className="relative">
             <div className="relative size-24 overflow-hidden rounded-full border-2 border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700">
-              {imageUrl ? (
+              {imageUrl && !imageLoadError ? (
                 imageUrl.startsWith("http") || imageUrl.startsWith("/uploads/") ? (
-                  <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    onError={() => setImageLoadError(true)}
+                  />
                 ) : (
                   <Image
                     src={imageUrl}
@@ -199,6 +210,7 @@ export function ProfileEdit({
                     fill
                     className="object-cover"
                     sizes="96px"
+                    onError={() => setImageLoadError(true)}
                   />
                 )
               ) : (

@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 
 type AvatarProps = {
   src: string | null | undefined;
@@ -34,47 +37,51 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+const initialsClass =
+  "inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-100 font-medium text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
+
 export function Avatar({ src, alt, size = "md", className = "", quality = 90, priority = false }: AvatarProps) {
+  const [loadError, setLoadError] = useState(false);
   const sizeClass = sizeClasses[size];
   const px = sizePixels[size];
   const resolvedSrc = !src ? null : src;
   const isLocalUpload = resolvedSrc?.startsWith("/uploads/");
+  const showFallback = !resolvedSrc || loadError;
 
-  if (resolvedSrc) {
+  if (showFallback) {
     return (
-      <span
-        className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 dark:bg-slate-600 ${sizeClass} ${className}`}
-      >
-        {isLocalUpload ? (
-          <img
-            src={resolvedSrc}
-            alt={alt}
-            width={px}
-            height={px}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <Image
-            src={resolvedSrc}
-            alt={alt}
-            width={px}
-            height={px}
-            sizes={size === "xl" ? "(max-width: 640px) 96px, 112px" : size === "lg" ? "56px" : size === "md" ? "44px" : "36px"}
-            quality={quality}
-            priority={priority}
-            className="h-full w-full object-cover"
-          />
-        )}
+      <span className={`${initialsClass} ${sizeClass} ${className}`} title={alt}>
+        {getInitials(alt)}
       </span>
     );
   }
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-100 font-medium text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 ${sizeClass} ${className}`}
-      title={alt}
+      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 dark:bg-slate-600 ${sizeClass} ${className}`}
     >
-      {getInitials(alt)}
+      {isLocalUpload ? (
+        <img
+          src={resolvedSrc}
+          alt={alt}
+          width={px}
+          height={px}
+          className="h-full w-full object-cover"
+          onError={() => setLoadError(true)}
+        />
+      ) : (
+        <Image
+          src={resolvedSrc}
+          alt={alt}
+          width={px}
+          height={px}
+          sizes={size === "xl" ? "(max-width: 640px) 96px, 112px" : size === "lg" ? "56px" : size === "md" ? "44px" : "36px"}
+          quality={quality}
+          priority={priority}
+          className="h-full w-full object-cover"
+          onError={() => setLoadError(true)}
+        />
+      )}
     </span>
   );
 }
