@@ -163,7 +163,7 @@ export default async function ResultPage({ params }: ResultPageProps) {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2">
             <Button asChild>
-              <a href={attempt.certificate.pdfUrl ?? "#"} target="_blank" rel="noreferrer">
+              <a href={`/api/certificates/${attempt.certificate.uuid}/pdf?download=1`} target="_blank" rel="noreferrer">
                 Sertifikat PDF
               </a>
             </Button>

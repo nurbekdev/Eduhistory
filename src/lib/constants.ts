@@ -10,7 +10,7 @@ export const routeAccess: Record<string, Role[]> = {
   "/dashboard": [Role.STUDENT],
   "/mening-kurslarim": [Role.STUDENT],
   "/player": [Role.STUDENT],
-  "/sertifikatlar": [Role.STUDENT],
+  "/sertifikatlar": [Role.STUDENT, Role.ADMIN, Role.INSTRUCTOR],
   "/profil": [Role.STUDENT, Role.INSTRUCTOR, Role.ADMIN],
   "/boshqaruv": [Role.ADMIN, Role.INSTRUCTOR],
 };

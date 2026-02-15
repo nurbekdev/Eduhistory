@@ -415,7 +415,7 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
                       <p className="text-sm font-semibold" style={{ color: "var(--clr-bronze)" }}>Sertifikat mavjud.</p>
                       <div className="flex flex-wrap gap-2">
                         <Button asChild size="sm">
-                          <a href={certificate.pdfUrl ?? "#"} target="_blank" rel="noreferrer">Sertifikatni yuklab olish</a>
+                          <a href={`/api/certificates/${certificate.uuid}/pdf?download=1`} target="_blank" rel="noreferrer">Sertifikatni yuklab olish</a>
                         </Button>
                         <Button asChild variant="outline" size="sm">
                           <Link href={`/sertifikat/${certificate.uuid}`}>Verify sahifasi</Link>
@@ -447,7 +447,7 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
                   <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Final score: {certificate.finalScore}%</p>
                   <div className="flex flex-wrap gap-2">
                     <Button asChild size="sm">
-                      <a href={certificate.pdfUrl ?? "#"} target="_blank" rel="noreferrer">
+                      <a href={`/api/certificates/${certificate.uuid}/pdf?download=1`} target="_blank" rel="noreferrer">
                         Sertifikatni yuklab olish
                       </a>
                     </Button>
