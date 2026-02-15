@@ -75,18 +75,20 @@ export async function PATCH(request: Request) {
     update: data,
   });
 
-  // Barcha mavjud sertifikatlarni yangi sozlamalar bo‘yicha qayta generatsiya qilish
-  const certificates = await prisma.certificate.findMany({
-    select: { quizAttemptId: true },
-  });
+  // Faqat attempt orqali yaratilgan sertifikatlarni qayta generatsiya qilish (quizAttemptId bo‘lganlar)
+  const certificates = await prisma.$queryRaw<Array<{ quizAttemptId: string | null }>>`
+    SELECT "quizAttemptId" FROM "Certificate" WHERE "quizAttemptId" IS NOT NULL
+  `;
   for (const cert of certificates) {
+    const attemptId = cert.quizAttemptId;
+    if (!attemptId) continue;
     try {
       await generateCertificateForPassedFinalAttempt({
-        attemptId: cert.quizAttemptId,
+        attemptId,
         generatedBy: "certificate-settings-patch",
       });
     } catch (err) {
-      console.warn("Sertifikat qayta generatsiya qilinmadi:", cert.quizAttemptId, err);
+      console.warn("Sertifikat qayta generatsiya qilinmadi:", attemptId, err);
     }
   }
 
