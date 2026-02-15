@@ -288,8 +288,8 @@ export function InstructorAnalyticsDashboard() {
             <CardTitle>Lesson drop-off</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-72 min-h-[200px]">
+              <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                 <BarChart data={selectedCourse.lessonDropOff}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="lessonTitle" tick={{ fontSize: 11 }} />
@@ -309,8 +309,8 @@ export function InstructorAnalyticsDashboard() {
             <CardTitle>Completion taqsimoti</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-72 min-h-[200px]">
+              <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                 <PieChart>
                   <Pie data={completionPie} dataKey="value" nameKey="name" outerRadius={100} fill="#059669" label />
                   <Tooltip />
@@ -326,8 +326,8 @@ export function InstructorAnalyticsDashboard() {
           <CardTitle>Urinishlar trendi</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-72 min-h-[200px]">
+            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <LineChart data={selectedCourse.attemptsTrend}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
@@ -347,8 +347,8 @@ export function InstructorAnalyticsDashboard() {
           <CardTitle>Haftalik cohort comparison (lesson-level)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-80 min-h-[200px]">
+            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <LineChart data={selectedCourse.weeklyCohortComparison.rows}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="week" />

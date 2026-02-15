@@ -5,7 +5,6 @@ import { getServerSession } from "next-auth";
 import { Zap } from "lucide-react";
 
 import { ThemeToggle, LocaleSwitcher } from "@/components/layout/header-actions";
-import { MobileNavMenu } from "@/components/layout/mobile-nav-menu";
 import { UserMenuDropdown } from "@/components/layout/user-menu-dropdown";
 import { Button } from "@/components/ui/button";
 import { NotificationDropdown } from "@/features/notifications/components/notification-dropdown";
@@ -64,7 +63,6 @@ export async function MainHeader({ locale }: MainHeaderProps) {
             </Link>
           ))}
         </nav>
-        <MobileNavMenu links={[...publicLinks, ...roleLinks]} />
         <div className="flex min-w-0 items-center gap-1 sm:gap-2">
           {session?.user && <NotificationDropdown userRole={role ?? Role.STUDENT} />}
           {/* Til va tema faqat desktopda headerda; mobilda profil menyusida */}

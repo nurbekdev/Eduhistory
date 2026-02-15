@@ -84,7 +84,9 @@ export default async function CertificatesPage() {
               month: "long",
               day: "numeric",
             });
-            const pdfFullUrl = certificate.pdfUrl ? `${baseUrl.replace(/\/$/, "")}${certificate.pdfUrl}` : null;
+            // API orqali PDF (serverless da public fayl saqlanmaydi, pdfContent ishlatiladi)
+            const pdfViewUrl = `/api/certificates/${certificate.uuid}/pdf`;
+            const pdfDownloadUrl = `${pdfViewUrl}?download=1`;
             return (
               <Card key={certificate.id} className="flex w-[320px] shrink-0 flex-col overflow-hidden border-slate-200 dark:border-slate-700">
                 <CardContent className="flex flex-1 flex-col p-0">
@@ -95,23 +97,11 @@ export default async function CertificatesPage() {
                   </div>
                   <div className="flex justify-center bg-slate-100 px-4 py-4 dark:bg-slate-800/50">
                     <div className="w-full max-w-[240px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900">
-                      {pdfFullUrl ? (
-                        <iframe
-                          title={certificate.course.title}
-                          src={`${pdfFullUrl}#view=FitH&toolbar=0&navpanes=0`}
-                          className="aspect-[842/595] w-full border-0"
-                        />
-                      ) : (
-                        <div className="flex aspect-[842/595] flex-col items-center justify-center bg-gradient-to-br from-emerald-800 to-teal-900 p-4 text-white">
-                          <p className="mb-1 text-center text-xs font-medium opacity-90">
-                            {certificate.course.title} kursini tamomlagani haqida
-                          </p>
-                          <p className="mb-2 text-center text-xl font-bold tracking-wide">SERTIFIKAT</p>
-                          <p className="text-center text-xs opacity-90">
-                            {certificate.finalScore}% · {issuedDate}
-                          </p>
-                        </div>
-                      )}
+                      <iframe
+                        title={certificate.course.title}
+                        src={`${pdfViewUrl}#view=FitH&toolbar=0&navpanes=0`}
+                        className="aspect-[842/595] min-h-[200px] w-full border-0"
+                      />
                     </div>
                   </div>
                   <div className="flex justify-center gap-2 px-4 pb-2">
@@ -121,7 +111,7 @@ export default async function CertificatesPage() {
                   </div>
                   <div className="flex flex-col gap-2 p-4">
                     <Button asChild className="w-full bg-slate-900 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
-                      <a href={certificate.pdfUrl ?? "#"} target="_blank" rel="noreferrer">
+                      <a href={pdfDownloadUrl} target="_blank" rel="noreferrer">
                         {t("certificates.downloadButton")}
                       </a>
                     </Button>

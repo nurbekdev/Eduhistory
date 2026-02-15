@@ -380,6 +380,7 @@ model Certificate {
   courseId           String
   quizAttemptId      String?      @unique // null when certificate issued without final quiz (course completion only)
   pdfUrl             String?
+  pdfContent         Bytes?       // PDF bytes for serving on serverless (public file not persisted)
   finalScore         Float
   completionPercent  Float
   totalLessons       Int

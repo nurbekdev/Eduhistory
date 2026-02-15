@@ -414,8 +414,9 @@ export async function generateCertificateForPassedFinalAttempt({
   const fileName = `certificate-${attempt.id}.pdf`;
   const relativePath = `/certificates/${fileName}`;
   const outputDir = join(process.cwd(), "public", "certificates");
-  await mkdir(outputDir, { recursive: true });
-  await writeFile(join(outputDir, fileName), bytes);
+  await mkdir(outputDir, { recursive: true }).then(() => writeFile(join(outputDir, fileName), bytes)).catch(() => {});
+
+  const pdfContentBuffer = Buffer.from(bytes);
 
   return prisma.certificate.upsert({
     where: {
@@ -427,6 +428,7 @@ export async function generateCertificateForPassedFinalAttempt({
     update: {
       quizAttemptId: attempt.id,
       pdfUrl: relativePath,
+      pdfContent: pdfContentBuffer,
       finalScore: attempt.scorePercent,
       completionPercent: 100,
       totalLessons,
@@ -441,6 +443,7 @@ export async function generateCertificateForPassedFinalAttempt({
       courseId: attempt.quiz.courseId,
       quizAttemptId: attempt.id,
       pdfUrl: relativePath,
+      pdfContent: pdfContentBuffer,
       finalScore: attempt.scorePercent,
       completionPercent: 100,
       totalLessons,
@@ -760,11 +763,12 @@ export async function generateCertificateForCourseCompletion({
   const fileName = `certificate-completion-${userId}-${courseId}.pdf`.replace(/[^a-zA-Z0-9-_.]/g, "_");
   const relativePath = `/certificates/${fileName}`;
   const outputDir = join(process.cwd(), "public", "certificates");
-  await mkdir(outputDir, { recursive: true });
-  await writeFile(join(outputDir, fileName), bytes);
+  await mkdir(outputDir, { recursive: true }).then(() => writeFile(join(outputDir, fileName), bytes)).catch(() => {});
 
+  const pdfContentBuffer = Buffer.from(bytes);
   const data = {
     pdfUrl: relativePath,
+    pdfContent: pdfContentBuffer,
     finalScore,
     completionPercent: 100,
     totalLessons,
@@ -797,14 +801,15 @@ export async function generateCertificateForCourseCompletion({
     if (msg.includes("quizAttempt") || msg.includes("user") || msg.includes("missing")) {
       const id = `cert_${verifyUuid.replace(/-/g, "").slice(0, 22)}`;
       await prisma.$executeRawUnsafe(
-        `INSERT INTO "Certificate" ("id", "uuid", "userId", "courseId", "quizAttemptId", "pdfUrl", "finalScore", "completionPercent", "totalLessons", "totalQuizzesPassed", "metadata", "issuedAt")
-         VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $9, $10::jsonb, NOW())
-         ON CONFLICT ("userId", "courseId") DO UPDATE SET "pdfUrl" = EXCLUDED."pdfUrl", "finalScore" = EXCLUDED."finalScore", "completionPercent" = EXCLUDED."completionPercent", "totalLessons" = EXCLUDED."totalLessons", "totalQuizzesPassed" = EXCLUDED."totalQuizzesPassed", "metadata" = EXCLUDED."metadata"`,
+        `INSERT INTO "Certificate" ("id", "uuid", "userId", "courseId", "quizAttemptId", "pdfUrl", "pdfContent", "finalScore", "completionPercent", "totalLessons", "totalQuizzesPassed", "metadata", "issuedAt")
+         VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $9, $10, $11::jsonb, NOW())
+         ON CONFLICT ("userId", "courseId") DO UPDATE SET "pdfUrl" = EXCLUDED."pdfUrl", "pdfContent" = EXCLUDED."pdfContent", "finalScore" = EXCLUDED."finalScore", "completionPercent" = EXCLUDED."completionPercent", "totalLessons" = EXCLUDED."totalLessons", "totalQuizzesPassed" = EXCLUDED."totalQuizzesPassed", "metadata" = EXCLUDED."metadata"`,
         id,
         verifyUuid,
         userId,
         courseId,
         relativePath,
+        pdfContentBuffer,
         finalScore,
         100,
         totalLessons,

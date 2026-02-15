@@ -11,8 +11,8 @@ const data = [
 
 export function StudentProgressChart() {
   return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-64 min-h-[200px] w-full">
+      <ResponsiveContainer width="100%" height="100%" minHeight={200}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
           <XAxis dataKey="lesson" />
