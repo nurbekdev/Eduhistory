@@ -99,7 +99,7 @@ export async function GET(_request: Request, context: RouteContext) {
               status: progress.status,
               attemptsUsed: progress.attemptsUsed,
               lastAttemptScore: progress.lastAttemptScore,
-              completedAt: progress.completedAt,
+              completedAt: progress.completedAt ? new Date(progress.completedAt).toISOString() : null,
             }
           : {
               status: "LOCKED",
@@ -201,7 +201,7 @@ export async function GET(_request: Request, context: RouteContext) {
               text: question.text,
               explanation: question.explanation,
               type: question.type,
-              options: question.options.map((option) => ({
+              options: (question.options ?? []).map((option) => ({
                 id: option.id,
                 text: option.text,
               })),
@@ -215,7 +215,7 @@ export async function GET(_request: Request, context: RouteContext) {
             uuid: certificate.uuid,
             pdfUrl: certificate.pdfUrl,
             finalScore: certificate.finalScore,
-            issuedAt: certificate.issuedAt,
+            issuedAt: certificate.issuedAt ? new Date(certificate.issuedAt).toISOString() : null,
           }
         : null,
     },
@@ -223,10 +223,10 @@ export async function GET(_request: Request, context: RouteContext) {
 
   return NextResponse.json(payload, { headers });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Noma'lum xatolik";
+    const message = err instanceof Error ? err.message : String(err);
     console.error("[player/course]", message, err);
     return NextResponse.json(
-      { message: "Kurs ma'lumotlarini yuklashda xatolik.", error: process.env.NODE_ENV === "development" ? message : undefined },
+      { message: "Kurs ma'lumotlarini yuklashda xatolik.", error: message },
       { status: 500 }
     );
   }

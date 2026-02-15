@@ -89,8 +89,17 @@ type PlayerPayload = {
 
 async function fetchCoursePlayer(courseId: string): Promise<PlayerPayload> {
   const response = await fetch(`/api/player/course/${courseId}`);
-  if (!response.ok) throw new Error("Kurs player ma'lumotini olishda xatolik yuz berdi.");
-  return response.json();
+  let body: PlayerPayload | { message?: string; error?: string };
+  try {
+    body = (await response.json()) as PlayerPayload | { message?: string; error?: string };
+  } catch {
+    throw new Error("Kurs player ma'lumotini olishda xatolik yuz berdi.");
+  }
+  if (!response.ok) {
+    const msg = body && "error" in body && body.error ? body.error : body && "message" in body ? body.message : "Kurs player ma'lumotini olishda xatolik yuz berdi.";
+    throw new Error(msg);
+  }
+  return body as PlayerPayload;
 }
 
 export function CoursePlayer({ courseId }: { courseId: string }) {
@@ -191,7 +200,8 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
   if (query.isError || !query.data) {
     return (
       <div className="rounded-lg border p-6 text-sm text-red-600" style={{ borderColor: "var(--border-default)", background: "var(--bg-card)" }}>
-        Kurs playerni yuklashda xatolik yuz berdi.
+        <p className="font-medium">Kurs playerni yuklashda xatolik yuz berdi.</p>
+        {query.error?.message && <p className="mt-2 break-words text-xs opacity-90">{query.error.message}</p>}
       </div>
     );
   }

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Quiz" ADD COLUMN IF NOT EXISTS "isOptional" BOOLEAN NOT NULL DEFAULT true;
