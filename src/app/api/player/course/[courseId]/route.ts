@@ -10,6 +10,7 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Avval tizimga kiring." }, { status: 401 });
@@ -73,7 +74,8 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const lessons = enrollment.course.modules.flatMap((moduleItem) => moduleItem.lessons);
-  const progressMap = new Map(enrollment.progress.map((item) => [item.lessonId, item]));
+  const progressList = enrollment.progress ?? [];
+  const progressMap = new Map(progressList.map((item) => [item.lessonId, item]));
 
   const mappedModules = enrollment.course.modules.map((moduleItem) => ({
     id: moduleItem.id,
@@ -113,16 +115,16 @@ export async function GET(_request: Request, context: RouteContext) {
               description: lesson.quiz.description,
               passingScore: lesson.quiz.passingScore,
               attemptLimit: lesson.quiz.attemptLimit,
-              questions: lesson.quiz.questions.map((question) => ({
-                id: question.id,
-                text: question.text,
-                explanation: question.explanation,
-                type: question.type,
-                options: question.options.map((option) => ({
-                  id: option.id,
-                  text: option.text,
+                questions: (lesson.quiz.questions ?? []).map((question) => ({
+                  id: question.id,
+                  text: question.text,
+                  explanation: question.explanation,
+                  type: question.type,
+                  options: (question.options ?? []).map((option) => ({
+                    id: option.id,
+                    text: option.text,
+                  })),
                 })),
-              })),
             }
           : null,
       };
@@ -130,7 +132,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }));
 
   // Progress hisobi: faqat shu enrollment bo'yicha, cache ta'siri bo'lmasligi uchun
-  const completedLessons = enrollment.progress.filter((p) => p.status === "COMPLETED").length;
+  const completedLessons = progressList.filter((p) => p.status === "COMPLETED").length;
   const totalLessons = lessons.length;
   const progressPercent = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
 
@@ -170,8 +172,7 @@ export async function GET(_request: Request, context: RouteContext) {
   headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   headers.set("Pragma", "no-cache");
 
-  return NextResponse.json(
-    {
+  const payload = {
     enrollment: {
       id: enrollment.id,
       status: enrollment.status,
@@ -195,7 +196,7 @@ export async function GET(_request: Request, context: RouteContext) {
             passingScore: finalQuiz.passingScore,
             attemptLimit: finalQuiz.attemptLimit,
             attemptsUsed: finalAttemptsUsed,
-            questions: finalQuiz.questions.map((question) => ({
+            questions: (finalQuiz.questions ?? []).map((question) => ({
               id: question.id,
               text: question.text,
               explanation: question.explanation,
@@ -208,9 +209,25 @@ export async function GET(_request: Request, context: RouteContext) {
             canStart: canStartFinalQuiz,
           }
         : null,
-      certificate,
+      certificate: certificate
+        ? {
+            id: certificate.id,
+            uuid: certificate.uuid,
+            pdfUrl: certificate.pdfUrl,
+            finalScore: certificate.finalScore,
+            issuedAt: certificate.issuedAt,
+          }
+        : null,
     },
-  },
-  { headers }
-  );
+  };
+
+  return NextResponse.json(payload, { headers });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Noma'lum xatolik";
+    console.error("[player/course]", message, err);
+    return NextResponse.json(
+      { message: "Kurs ma'lumotlarini yuklashda xatolik.", error: process.env.NODE_ENV === "development" ? message : undefined },
+      { status: 500 }
+    );
+  }
 }
