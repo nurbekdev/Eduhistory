@@ -51,7 +51,14 @@ export async function middleware(request: NextRequest) {
 
   if (allowedRoles && token) {
     const role = token.role as Role | undefined;
-    if (!role || !allowedRoles.includes(role)) {
+    // Token bor lekin role yo'q: session eski, qayta kirish kerak (403 o'rniga login)
+    if (!role) {
+      const loginUrl = new URL("/kirish", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      loginUrl.searchParams.set("error", "SessionInvalid");
+      return NextResponse.redirect(loginUrl);
+    }
+    if (!allowedRoles.includes(role)) {
       return NextResponse.redirect(new URL("/403", request.url));
     }
   }

@@ -66,20 +66,26 @@ export const authOptions: NextAuthOptions = {
       return baseUrl;
     },
     async jwt({ token, user }) {
+      const userId = (user as { id?: string } | undefined)?.id ?? token.sub;
       if (user) {
         const u = user as { role?: Role; image?: string };
-        token.role = u.role ?? Role.STUDENT;
+        token.role = u.role;
         token.image = u.image ?? undefined;
       }
 
-      if (!token.role && token.sub) {
-        const existingUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: { role: true },
-        });
-        token.role = existingUser?.role ?? Role.STUDENT;
+      // Har doim DB dan yangi role olish (kirish paytida va token yangilanganda)
+      if (userId) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { role: true },
+          });
+          if (dbUser?.role) token.role = dbUser.role;
+        } catch {
+          // Prisma xatosi bo'lsa, mavjud rolni saqlab qolamiz
+        }
       }
-
+      token.role = (token.role as Role) ?? Role.STUDENT;
       return token;
     },
     async session({ session, token }) {
