@@ -9,6 +9,15 @@
   --border: #e2e8f0;
   --card: #ffffff;
   --card-foreground: #0f172a;
+  /* Course player & cards */
+  --border-default: #e2e8f0;
+  --bg-card: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --clr-dust: #f1f5f9;
+  --clr-gold: #b45309;
+  --clr-bronze: #92400e;
 }
 
 .dark {
@@ -18,6 +27,14 @@
   --border: #334155;
   --card: #1e293b;
   --card-foreground: #f1f5f9;
+  --border-default: #334155;
+  --bg-card: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --clr-dust: #334155;
+  --clr-gold: #f59e0b;
+  --clr-bronze: #d97706;
 }
 
 @theme inline {

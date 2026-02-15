@@ -168,6 +168,13 @@ export async function POST(request: Request) {
     });
 
     if (attempt.quiz.lessonId && attempt.enrollmentId) {
+      const lessonProgress = await tx.lessonProgress.findFirst({
+        where: {
+          enrollmentId: attempt.enrollmentId,
+          lessonId: attempt.quiz.lessonId,
+        },
+      });
+      const wasAlreadyCompleted = lessonProgress?.status === ProgressStatus.COMPLETED;
       await tx.lessonProgress.updateMany({
         where: {
           enrollmentId: attempt.enrollmentId,
@@ -175,13 +182,23 @@ export async function POST(request: Request) {
         },
         data: {
           attemptsUsed: { increment: 1 },
-          lastAttemptScore: scorePercent,
-          status: isPassed ? ProgressStatus.COMPLETED : ProgressStatus.UNLOCKED,
-          completedAt: isPassed ? new Date() : null,
+          ...(isPassed && !wasAlreadyCompleted
+            ? {
+                lastAttemptScore: scorePercent,
+                status: ProgressStatus.COMPLETED,
+                completedAt: new Date(),
+              }
+            : !isPassed
+              ? {
+                  lastAttemptScore: scorePercent,
+                  status: ProgressStatus.UNLOCKED,
+                  completedAt: null,
+                }
+              : {}),
         },
       });
 
-      if (isPassed) {
+      if (isPassed && !wasAlreadyCompleted) {
         const orderedLessons = await tx.lesson.findMany({
           where: {
             module: {

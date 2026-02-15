@@ -1,12 +1,11 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Linkedin } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { TeacherCard } from "@/components/landing/teacher-card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 export type InstructorItem = {
   id: string;
@@ -15,7 +14,34 @@ export type InstructorItem = {
   bio: string | null;
   workplace: string | null;
   linkedinUrl: string | null;
+  _count?: { courses?: number };
 };
+
+/** Ustozlar kartalari — grid (1/2/3 kolonna). */
+export function InstructorsGrid({ instructors }: { instructors: InstructorItem[] }) {
+  if (instructors.length === 0) {
+    return (
+      <Card className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-8 text-center">
+        <p className="text-slate-500 dark:text-slate-400">Hozircha ustozlar ro'yxati mavjud emas.</p>
+      </Card>
+    );
+  }
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {instructors.map((instructor) => (
+        <TeacherCard
+          key={instructor.id}
+          name={instructor.fullName}
+          title={instructor.workplace ?? null}
+          bio={instructor.bio ?? null}
+          avatar={instructor.imageUrl ?? null}
+          linkedIn={instructor.linkedinUrl ?? null}
+          courseCount={instructor._count?.courses ?? 0}
+        />
+      ))}
+    </div>
+  );
+}
 
 function useCardsPerPage() {
   const [n, setN] = useState(1);
@@ -76,7 +102,7 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
       </div>
       <div className="relative w-full overflow-hidden">
         <div
-          className="flex will-change-transform transition-transform duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+          className="flex items-start will-change-transform transition-transform duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
           style={{
             width: `${trackWidthPercent}%`,
             transform: `translate3d(${translateXPercent}%, 0, 0)`,
@@ -88,69 +114,14 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
               className="flex min-w-[260px] shrink-0 pr-3 sm:min-w-[280px] sm:pr-4 md:min-w-[300px]"
               style={{ flex: `0 0 ${cardWidthPercent}%` }}
             >
-              <Card className="group h-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg transition duration-300 hover:shadow-xl hover:border-emerald-200 dark:hover:border-emerald-800 sm:rounded-2xl">
-                {/* Pro: yuz markazda (object-center), o‘lchovli balandlik */}
-                <div className="relative h-44 w-full overflow-hidden bg-slate-100 dark:bg-slate-700 sm:h-48 md:h-52">
-                  {instructor.imageUrl ? (
-                    instructor.imageUrl.startsWith("http") || instructor.imageUrl.startsWith("/uploads/") ? (
-                      <img
-                        src={instructor.imageUrl}
-                        alt={instructor.fullName}
-                        className="absolute inset-0 size-full object-cover object-center transition duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <Image
-                        src={instructor.imageUrl}
-                        alt={instructor.fullName}
-                        fill
-                        className="object-cover object-center transition duration-300 group-hover:scale-105"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
-                      />
-                    )
-                  ) : (
-                    <span className="absolute inset-0 flex items-center justify-center text-4xl font-semibold text-slate-400 dark:text-slate-500">
-                      {instructor.fullName.charAt(0)}
-                    </span>
-                  )}
-                </div>
-                <CardContent className="flex flex-col p-4 sm:p-5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">
-                        {instructor.fullName}
-                      </h3>
-                      {(instructor.workplace || instructor.bio) && (
-                        <p className="mt-0.5 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
-                          {instructor.workplace ?? instructor.bio ?? ""}
-                        </p>
-                      )}
-                    </div>
-                    {instructor.linkedinUrl && (
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="size-10 flex-shrink-0 rounded-full p-0"
-                      >
-                        <Link
-                          href={instructor.linkedinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center text-[#0A66C2]"
-                          aria-label="LinkedIn"
-                        >
-                          <Linkedin className="size-5" />
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                  {instructor.bio && instructor.workplace && (
-                    <p className="mt-2 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
-                      {instructor.bio}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+              <TeacherCard
+                name={instructor.fullName}
+                title={instructor.workplace ?? undefined}
+                bio={instructor.bio}
+                avatar={instructor.imageUrl}
+                linkedIn={instructor.linkedinUrl}
+                courseCount={0}
+              />
             </div>
           ))}
         </div>

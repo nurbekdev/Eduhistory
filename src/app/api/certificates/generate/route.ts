@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { authOptions } from "@/lib/auth";
+import { checkCertificateEligibility } from "@/lib/certificate-eligibility";
 import { generateCertificateForPassedFinalAttempt } from "@/lib/certificate-service";
 import { prisma } from "@/lib/prisma";
 
@@ -47,6 +48,14 @@ export async function POST(request: Request) {
 
   if (!attempt.quiz.isFinal || attempt.status !== AttemptStatus.PASSED) {
     return NextResponse.json({ message: "Sertifikat olish uchun final testdan o'tish kerak." }, { status: 409 });
+  }
+
+  const { eligible, reason } = await checkCertificateEligibility(session.user.id, attempt.quiz.courseId);
+  if (!eligible) {
+    return NextResponse.json(
+      { message: reason ?? "Sertifikat olish uchun shartlar bajarilmagan." },
+      { status: 400 },
+    );
   }
 
   const certificate = await generateCertificateForPassedFinalAttempt({

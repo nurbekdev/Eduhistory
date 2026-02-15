@@ -98,6 +98,9 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
   const query = useQuery({
     queryKey: ["course-player", courseId],
     queryFn: () => fetchCoursePlayer(courseId),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const allLessons = useMemo(() => query.data?.course.modules.flatMap((moduleItem) => moduleItem.lessons) ?? [], [query.data]);
@@ -114,6 +117,12 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
   const activeLesson = allLessons.find((lesson) => lesson.id === computedActiveLessonId) ?? null;
   const finalQuiz = query.data?.course.finalQuiz ?? null;
   const certificate = query.data?.course.certificate ?? null;
+
+  const nextLesson = useMemo(() => {
+    if (!activeLesson) return null;
+    const idx = allLessons.findIndex((l) => l.id === activeLesson.id);
+    return idx >= 0 && idx < allLessons.length - 1 ? allLessons[idx + 1] ?? null : null;
+  }, [activeLesson, allLessons]);
 
   const onStartAttempt = async (quizId: string) => {
     if (!query.data) return null;
@@ -149,24 +158,54 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
     router.push(`/quiz/${createdId}`);
   };
 
+  const [generatingCert, setGeneratingCert] = useState(false);
+  const onRequestCertificate = async () => {
+    if (!query.data?.course.id) return;
+    setGeneratingCert(true);
+    try {
+      const res = await fetch("/api/certificates/generate-by-course", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: query.data.course.id }),
+      });
+      const data = (await res.json()) as { message?: string };
+      if (!res.ok) {
+        toast.error(data.message ?? "Sertifikat olishda xatolik.");
+        return;
+      }
+      toast.success("Sertifikat yaratildi.");
+      await query.refetch();
+    } finally {
+      setGeneratingCert(false);
+    }
+  };
+
   if (query.isLoading) {
-    return <div className="rounded-lg border bg-white p-6 text-sm text-zinc-600">Kurs player yuklanmoqda...</div>;
+    return (
+      <div className="rounded-lg border p-6 text-sm" style={{ borderColor: "var(--border-default)", background: "var(--bg-card)", color: "var(--text-muted)" }}>
+        Kurs player yuklanmoqda...
+      </div>
+    );
   }
 
   if (query.isError || !query.data) {
-    return <div className="rounded-lg border bg-white p-6 text-sm text-red-600">Kurs playerni yuklashda xatolik yuz berdi.</div>;
+    return (
+      <div className="rounded-lg border p-6 text-sm text-red-600" style={{ borderColor: "var(--border-default)", background: "var(--bg-card)" }}>
+        Kurs playerni yuklashda xatolik yuz berdi.
+      </div>
+    );
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-      <Card>
+      <Card className="border-[var(--border-default)]" style={{ background: "var(--bg-card)" }}>
         <CardHeader>
-          <CardTitle>Darslar ro'yxati</CardTitle>
+          <CardTitle style={{ color: "var(--text-primary)" }}>Darslar ro'yxati</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {query.data.course.modules.map((moduleItem) => (
             <div key={moduleItem.id} className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
                 {moduleItem.order}-modul: {moduleItem.title}
               </p>
               {moduleItem.lessons.map((lesson) => {
@@ -181,8 +220,11 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
                       setActiveLessonId(lesson.id);
                     }}
                     className={`w-full rounded-lg border p-3 text-left text-sm transition ${
-                      isActive ? "border-emerald-500 bg-emerald-50" : "border-zinc-200 bg-white hover:bg-zinc-50"
-                    } ${isLocked ? "cursor-not-allowed bg-zinc-100 text-zinc-500" : ""}`}
+                      isActive
+                        ? "border-[var(--clr-gold)] bg-[var(--clr-dust)] text-[var(--text-primary)]"
+                        : "border-[var(--border-default)] bg-[var(--bg-card)] hover:bg-[var(--clr-dust)] text-[var(--text-primary)]"
+                    } ${isLocked ? "cursor-not-allowed opacity-60" : ""}`}
+                    style={isLocked ? { color: "var(--text-muted)" } : undefined}
                   >
                     <div className="flex items-center justify-between">
                       <span>{lesson.title}</span>
@@ -208,12 +250,12 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
 
       {activeLesson ? (
         <div className="space-y-6">
-          <Card className="overflow-hidden">
-            <CardHeader className="space-y-1 border-b bg-slate-50/50 pb-4">
+          <Card className="overflow-hidden border-[var(--border-default)]" style={{ background: "var(--bg-card)" }}>
+            <CardHeader className="space-y-1 border-b pb-4" style={{ borderColor: "var(--border-default)", background: "var(--clr-dust)" }}>
               <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-xl">{activeLesson.title}</CardTitle>
+                <CardTitle className="text-xl" style={{ color: "var(--text-primary)" }}>{activeLesson.title}</CardTitle>
                 {activeLesson.durationMinutes > 0 && (
-                  <Badge variant="outline" className="gap-1 font-normal text-slate-600">
+                  <Badge variant="outline" className="gap-1 font-normal" style={{ borderColor: "var(--clr-bronze)", color: "var(--clr-bronze)" }}>
                     <Clock3 className="size-3.5" />
                     {activeLesson.durationMinutes} daq
                   </Badge>
@@ -222,7 +264,7 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               {activeLesson.youtubeUrl?.trim() ? (
-                <div className="aspect-video overflow-hidden rounded-xl border border-slate-200 bg-black shadow-sm">
+                <div className="aspect-video overflow-hidden rounded-xl border bg-black shadow-sm" style={{ borderColor: "var(--border-default)" }}>
                   <iframe
                     src={toYoutubeEmbedUrl(activeLesson.youtubeUrl)}
                     title={activeLesson.title}
@@ -233,23 +275,24 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
                   />
                 </div>
               ) : (
-                <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-slate-500">
-                  <span className="text-sm">Bu darsda video yo&apos;q</span>
+                <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed text-sm" style={{ borderColor: "var(--border-default)", background: "var(--bg-card)", color: "var(--text-muted)" }}>
+                  <span>Bu darsda video yo&apos;q</span>
                 </div>
               )}
 
               {activeLesson.description ? (
-                <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-4">
-                  <p className="text-sm font-medium text-slate-600">Qisqa tavsif</p>
-                  <p className="mt-1 text-base leading-relaxed text-slate-800">{activeLesson.description}</p>
+                <div className="rounded-lg border p-4" style={{ borderColor: "var(--border-default)", background: "var(--clr-dust)" }}>
+                  <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Qisqa tavsif</p>
+                  <p className="mt-1 text-base leading-relaxed" style={{ color: "var(--text-primary)" }}>{activeLesson.description}</p>
                 </div>
               ) : null}
 
               {activeLesson.content ? (
-                <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Dars matni</p>
+                <div className="lesson-content-wrapper rounded-lg border p-5 shadow-sm" style={{ borderColor: "var(--border-default)", background: "var(--bg-card)" }}>
+                  <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Dars matni</p>
                   <div
-                    className="lesson-content mt-3 text-base leading-relaxed text-slate-800 dark:text-slate-200 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_blockquote]:italic [&_a]:text-emerald-600 [&_a]:underline [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
+                    className="lesson-content mt-3 text-base leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_blockquote]:border-l-4 [&_blockquote]:pl-3 [&_blockquote]:italic [&_a]:underline [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
+                    style={{ color: "var(--text-primary)" }}
                     dangerouslySetInnerHTML={{ __html: activeLesson.content }}
                   />
                 </div>
@@ -258,16 +301,16 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Card>
+            <Card className="border-[var(--border-default)]" style={{ background: "var(--bg-card)" }}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <FileText className="size-4 text-emerald-600" />
+                <CardTitle className="flex items-center gap-2 text-base" style={{ color: "var(--text-primary)" }}>
+                  <FileText className="size-4" style={{ color: "var(--clr-bronze)" }} />
                   Materiallar
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {activeLesson.materials.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 py-6 text-center text-sm text-slate-500">
+                  <p className="rounded-lg border border-dashed py-6 text-center text-sm" style={{ borderColor: "var(--border-default)", background: "var(--clr-dust)", color: "var(--text-muted)" }}>
                     Qo'shimcha materiallar yo'q
                   </p>
                 ) : (
@@ -278,15 +321,16 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
                         href={material.fileUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition hover:border-emerald-200 hover:bg-emerald-50/50"
+                        className="flex items-center gap-3 rounded-lg border p-3 text-left transition hover:opacity-90"
+                        style={{ borderColor: "var(--border-default)", background: "var(--bg-card)" }}
                       >
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg" style={{ background: "var(--clr-dust)", color: "var(--clr-bronze)" }}>
                           <FileText className="size-5" />
                         </span>
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                           {material.fileName}
                         </span>
-                        <span className="text-xs text-slate-500">Yuklab olish</span>
+                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>Yuklab olish</span>
                       </a>
                     ))}
                   </div>
@@ -294,16 +338,16 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-[var(--border-default)]" style={{ background: "var(--bg-card)" }}>
               <CardHeader>
-                <CardTitle>Quiz</CardTitle>
+                <CardTitle style={{ color: "var(--text-primary)" }}>Quiz</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {!activeLesson.quiz ? (
-                  <p className="text-sm text-zinc-600">Bu dars uchun test mavjud emas.</p>
+                {!activeLesson.quiz || (activeLesson.quiz.questions?.length ?? 0) === 0 ? (
+                  <p className="text-sm" style={{ color: "var(--text-muted)" }}>Bu dars uchun test mavjud emas.</p>
                 ) : (
                   <>
-                    <div className="text-sm text-zinc-700">
+                    <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
                       <p>
                         Passing score: <strong>{activeLesson.quiz.passingScore}%</strong>
                       </p>
@@ -316,13 +360,28 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
                     </div>
 
                     {activeLesson.progress.status === "COMPLETED" ? (
-                      <div className="rounded-md border bg-emerald-50 p-3 text-sm text-emerald-700">
-                        Siz bu dars testidan o'tgansiz.
+                      <div className="space-y-2">
+                        <div className="rounded-md border p-3 text-sm" style={{ borderColor: "var(--clr-gold)", background: "var(--clr-dust)", color: "var(--clr-bronze)" }}>
+                          Siz bu dars testidan o&apos;tgansiz.
+                          {activeLesson.progress.lastAttemptScore != null && (
+                            <span className="ml-1">(Birinchi ball: {Math.round(activeLesson.progress.lastAttemptScore)}%)</span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button onClick={onStartQuiz} variant="outline">
+                            Qayta ishlash
+                          </Button>
+                          {nextLesson ? (
+                            <Button variant="outline" onClick={() => setActiveLessonId(nextLesson.id)}>
+                              Keyingi darsga o&apos;tish
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-2">
                         <Button onClick={onStartQuiz}>Testni boshlash</Button>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                           Test yangi attempt-runner sahifasida ochiladi (timer, autosave va anti-leave himoyasi bilan).
                         </p>
                       </div>
@@ -333,17 +392,49 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
             </Card>
           </div>
 
-          <Card>
+          <Card className="border-[var(--border-default)]" style={{ background: "var(--bg-card)" }}>
             <CardHeader>
-              <CardTitle>Kurs yakuniy testi</CardTitle>
+              <CardTitle style={{ color: "var(--text-primary)" }}>Kurs yakuniy testi</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!finalQuiz ? (
-                <p className="text-sm text-zinc-600">Bu kurs uchun yakuniy test hali sozlanmagan.</p>
+              {!finalQuiz || (finalQuiz.questions?.length ?? 0) === 0 ? (
+                <>
+                  <p className="text-sm" style={{ color: "var(--text-muted)" }}>Bu kurs uchun yakuniy test hali sozlanmagan.</p>
+                  {certificate ? (
+                    <div className="mt-3 space-y-3 rounded-lg border p-4" style={{ borderColor: "var(--clr-gold)", background: "var(--clr-dust)" }}>
+                      <p className="text-sm font-semibold" style={{ color: "var(--clr-bronze)" }}>Sertifikat mavjud.</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button asChild size="sm">
+                          <a href={certificate.pdfUrl ?? "#"} target="_blank" rel="noreferrer">Sertifikatni yuklab olish</a>
+                        </Button>
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/sertifikat/${certificate.uuid}`}>Verify sahifasi</Link>
+                        </Button>
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href="/sertifikatlar">Barcha sertifikatlar</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                        {query.data.enrollment.completedLessons >= query.data.enrollment.totalLessons
+                          ? "Barcha darslarni tugatgan bo'lsangiz sertifikat olishingiz mumkin."
+                          : `Sertifikat olish uchun barcha darslarni tugating (${query.data.enrollment.completedLessons}/${query.data.enrollment.totalLessons}).`}
+                      </p>
+                      <Button
+                        onClick={onRequestCertificate}
+                        disabled={generatingCert || query.data.enrollment.completedLessons < query.data.enrollment.totalLessons}
+                      >
+                        {generatingCert ? "Yuklanmoqda..." : "Sertifikat olish"}
+                      </Button>
+                    </div>
+                  )}
+                </>
               ) : certificate ? (
-                <div className="space-y-3 rounded-lg border bg-emerald-50 p-4">
-                  <p className="text-sm font-semibold text-emerald-700">Yakuniy test muvaffaqiyatli topshirilgan.</p>
-                  <p className="text-sm text-zinc-700">Final score: {certificate.finalScore}%</p>
+                <div className="space-y-3 rounded-lg border p-4" style={{ borderColor: "var(--clr-gold)", background: "var(--clr-dust)" }}>
+                  <p className="text-sm font-semibold" style={{ color: "var(--clr-bronze)" }}>Yakuniy test muvaffaqiyatli topshirilgan.</p>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Final score: {certificate.finalScore}%</p>
                   <div className="flex flex-wrap gap-2">
                     <Button asChild size="sm">
                       <a href={certificate.pdfUrl ?? "#"} target="_blank" rel="noreferrer">
@@ -360,7 +451,7 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
                 </div>
               ) : (
                 <>
-                  <div className="text-sm text-zinc-700">
+                  <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
                     <p>
                       Passing score: <strong>{finalQuiz.passingScore}%</strong>
                     </p>
@@ -373,13 +464,13 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
                   </div>
 
                   {!finalQuiz.canStart ? (
-                    <div className="rounded-md border bg-zinc-100 p-3 text-sm text-zinc-600">
+                    <div className="rounded-md border p-3 text-sm" style={{ borderColor: "var(--border-default)", background: "var(--clr-dust)", color: "var(--text-muted)" }}>
                       Yakuniy test ochilishi uchun barcha dars testlaridan o'tishingiz kerak.
                     </div>
                   ) : (
                     <div className="space-y-2">
                       <Button onClick={onStartFinalQuiz}>Yakuniy testni boshlash</Button>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                         Yakuniy test ham alohida attempt-runner sahifasida bajariladi.
                       </p>
                     </div>
@@ -390,8 +481,8 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
           </Card>
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-6 text-sm text-zinc-600">Dars tanlang.</CardContent>
+        <Card className="border-[var(--border-default)]" style={{ background: "var(--bg-card)" }}>
+          <CardContent className="p-6 text-sm" style={{ color: "var(--text-muted)" }}>Dars tanlang.</CardContent>
         </Card>
       )}
     </div>

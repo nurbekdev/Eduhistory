@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CoursesCarousel } from "@/features/marketing/components/courses-carousel";
-import { InstructorsCarousel } from "@/features/marketing/components/instructors-carousel";
+import { InstructorsGrid } from "@/features/marketing/components/instructors-carousel";
 import { Reveal } from "@/features/marketing/components/reveal";
 import { TiltCard } from "@/features/marketing/components/tilt-card";
 import { getT } from "@/lib/i18n/messages";
@@ -258,7 +258,7 @@ export default async function LandingPage() {
           </div>
         </Reveal>
         <Reveal delayMs={100}>
-          <InstructorsCarousel instructors={instructorsForCarousel} />
+          <InstructorsGrid instructors={instructorsForCarousel} />
         </Reveal>
       </section>
 

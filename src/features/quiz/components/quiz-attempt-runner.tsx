@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Clock3, Save, TriangleAlert } from "lucide-react";
@@ -73,6 +73,7 @@ async function fetchAttempt(attemptId: string): Promise<AttemptPayload> {
 
 export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["quiz-attempt", attemptId],
     queryFn: () => fetchAttempt(attemptId),
@@ -250,6 +251,11 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
 
     window.localStorage.removeItem(draftKey);
     setSubmittedResult(body);
+
+    const courseId = query.data?.quiz?.course?.id;
+    if (courseId) {
+      queryClient.invalidateQueries({ queryKey: ["course-player", courseId] });
+    }
 
     if (auto) {
       toast.error("Vaqt tugadi. Quiz avtomatik yakunlandi.");

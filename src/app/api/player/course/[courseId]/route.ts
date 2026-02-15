@@ -129,7 +129,8 @@ export async function GET(_request: Request, context: RouteContext) {
     }),
   }));
 
-  const completedLessons = enrollment.progress.filter((item) => item.status === "COMPLETED").length;
+  // Progress hisobi: faqat shu enrollment bo'yicha, cache ta'siri bo'lmasligi uchun
+  const completedLessons = enrollment.progress.filter((p) => p.status === "COMPLETED").length;
   const totalLessons = lessons.length;
   const progressPercent = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
 
@@ -164,7 +165,13 @@ export async function GET(_request: Request, context: RouteContext) {
       : Promise.resolve(0),
   ]);
 
-  return NextResponse.json({
+  // Har doim yangi ma'lumot (cache bo'lmasin)
+  const headers = new Headers();
+  headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  headers.set("Pragma", "no-cache");
+
+  return NextResponse.json(
+    {
     enrollment: {
       id: enrollment.id,
       status: enrollment.status,
@@ -203,5 +210,7 @@ export async function GET(_request: Request, context: RouteContext) {
         : null,
       certificate,
     },
-  });
+  },
+  { headers }
+  );
 }

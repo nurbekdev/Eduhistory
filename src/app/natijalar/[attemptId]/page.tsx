@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+import { QuizResultEffect } from "../quiz-result-effect";
+
 type ResultPageProps = {
   params: Promise<{ attemptId: string }>;
 };
@@ -71,17 +73,25 @@ export default async function ResultPage({ params }: ResultPageProps) {
   const answerMap = new Map(attempt.answers.map((answer) => [answer.questionId, answer]));
 
   const courseId = attempt.quiz.course.id;
+  const isLessonQuiz = !attempt.quiz.isFinal;
 
   return (
     <PageContainer className="space-y-6">
+      <QuizResultEffect passed={passed} />
+
       <SectionTitle
         title="Quiz natijasi"
         description={`${attempt.quiz.course.title} kursi • ${attempt.quiz.isFinal ? "Yakuniy test" : "Dars testi"}`}
       />
 
-      <Card className="border-emerald-200 bg-emerald-50/50">
+      <Card className="border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/30">
         <CardContent className="flex flex-wrap items-center gap-3 pt-6">
-          <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+          {passed && isLessonQuiz && (
+            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700">
+              <Link href={`/player/${courseId}`}>Keyingi darsga o'tish</Link>
+            </Button>
+          )}
+          <Button asChild variant={passed && isLessonQuiz ? "outline" : "default"} className={passed && !isLessonQuiz ? "bg-emerald-600 hover:bg-emerald-700" : ""}>
             <Link href={`/player/${courseId}`}>Kursga qaytish</Link>
           </Button>
           {!passed && (

@@ -28,22 +28,38 @@ export default async function CertificatesPage() {
   const locale = (cookieStore.get("eduhistory-locale")?.value as Locale) ?? "uz";
   const t = getT(locale);
 
-  const certificates = await prisma.certificate.findMany({
-    where: {
-      userId: session.user.id,
-    },
-    include: {
-      course: {
-        select: {
-          title: true,
-          category: true,
-        },
-      },
-    },
-    orderBy: {
-      issuedAt: "desc",
-    },
-  });
+  const certificatesRaw = await prisma.$queryRaw<
+    Array<{
+      id: string;
+      uuid: string;
+      userId: string;
+      courseId: string;
+      quizAttemptId: string | null;
+      pdfUrl: string | null;
+      finalScore: number;
+      issuedAt: Date;
+      course_title: string;
+      course_category: string;
+    }>
+  >`
+    SELECT c.id, c.uuid, c."userId", c."courseId", c."quizAttemptId", c."pdfUrl", c."finalScore", c."issuedAt",
+           co.title AS "course_title", co.category AS "course_category"
+    FROM "Certificate" c
+    JOIN "Course" co ON co.id = c."courseId"
+    WHERE c."userId" = ${session.user.id}
+    ORDER BY c."issuedAt" DESC
+  `;
+  const certificates = certificatesRaw.map((row) => ({
+    id: row.id,
+    uuid: row.uuid,
+    userId: row.userId,
+    courseId: row.courseId,
+    quizAttemptId: row.quizAttemptId,
+    pdfUrl: row.pdfUrl,
+    finalScore: row.finalScore,
+    issuedAt: row.issuedAt,
+    course: { title: row.course_title, category: row.course_category },
+  }));
 
   const baseUrl = process.env.NEXTAUTH_URL ?? process.env.APP_URL ?? "";
 

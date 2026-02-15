@@ -291,6 +291,7 @@ model Quiz {
   courseId         String
   lessonId         String?   @unique
   isFinal          Boolean   @default(false)
+  isOptional       Boolean   @default(true)
   passingScore     Int       @default(70)
   attemptLimit     Int       @default(3)
   timeLimitMinutes Int?
@@ -373,21 +374,21 @@ model AttemptAnswer {
 }
 
 model Certificate {
-  id                 String      @id @default(cuid())
-  uuid               String      @unique @default(uuid())
+  id                 String       @id @default(cuid())
+  uuid               String       @unique @default(uuid())
   userId             String
   courseId           String
-  quizAttemptId      String      @unique
+  quizAttemptId      String?      @unique // null when certificate issued without final quiz (course completion only)
   pdfUrl             String?
   finalScore         Float
   completionPercent  Float
   totalLessons       Int
   totalQuizzesPassed Int
   metadata           Json?
-  issuedAt           DateTime    @default(now())
-  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course             Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  quizAttempt        QuizAttempt @relation(fields: [quizAttemptId], references: [id], onDelete: Cascade)
+  issuedAt           DateTime     @default(now())
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course             Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quizAttempt        QuizAttempt?  @relation(fields: [quizAttemptId], references: [id], onDelete: SetNull)
 
   @@unique([userId, courseId])
 }

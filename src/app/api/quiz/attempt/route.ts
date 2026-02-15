@@ -27,10 +27,18 @@ export async function POST(request: Request) {
     where: { id: parsed.data.quizId },
     include: {
       lesson: true,
+      _count: { select: { questions: true } },
     },
   });
   if (!quiz) {
     return NextResponse.json({ message: "Quiz topilmadi." }, { status: 404 });
+  }
+
+  if (quiz._count.questions === 0) {
+    return NextResponse.json(
+      { message: "Bu testda hali savollar yo'q.", code: "NO_QUESTIONS" },
+      { status: 400 },
+    );
   }
 
   if (quiz.lessonId && !parsed.data.enrollmentId) {
@@ -53,10 +61,7 @@ export async function POST(request: Request) {
       if (!lessonProgress || lessonProgress.status === "LOCKED") {
         return NextResponse.json({ message: "Bu dars hali qulflangan. Avval oldingi testdan o'ting." }, { status: 403 });
       }
-
-      if (lessonProgress.status === "COMPLETED") {
-        return NextResponse.json({ message: "Bu dars testidan allaqachon o'tgansiz." }, { status: 409 });
-      }
+      // O'tgandan keyin ham qayta ishlashga ruxsat (birinchi ball hisobga olinadi).
     }
 
     if (quiz.isFinal) {

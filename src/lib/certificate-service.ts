@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import QRCode from "qrcode";
 
+import { checkCertificateEligibility } from "@/lib/certificate-eligibility";
 import { prisma } from "@/lib/prisma";
 
 const CERTIFICATE_SETTINGS_ID = "default";
@@ -449,4 +450,389 @@ export async function generateCertificateForPassedFinalAttempt({
       },
     },
   });
+}
+
+export type GenerateCertificateForCourseCompletionParams = {
+  userId: string;
+  courseId: string;
+  generatedBy: string;
+};
+
+/** Sertifikat yaratadi kursni barcha darslari tugallanganda (yakuniy test yo'q yoki ixtiyoriy). */
+export async function generateCertificateForCourseCompletion({
+  userId,
+  courseId,
+  generatedBy,
+}: GenerateCertificateForCourseCompletionParams) {
+  const { eligible, reason } = await checkCertificateEligibility(userId, courseId);
+  if (!eligible) {
+    throw new Error(reason ?? "Sertifikat olish uchun shartlar bajarilmagan.");
+  }
+
+  const [user, course] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } }),
+    prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        modules: { include: { lessons: true } },
+      },
+    }),
+  ]);
+
+  if (!user || !course) {
+    throw new Error("Foydalanuvchi yoki kurs topilmadi.");
+  }
+
+  const totalLessons = course.modules.reduce((acc, m) => acc + m.lessons.length, 0);
+  const passedQuizzes = await prisma.quizAttempt.count({
+    where: {
+      userId,
+      quiz: { courseId },
+      status: AttemptStatus.PASSED,
+    },
+  });
+
+  const existingCertificate = await prisma.certificate.findUnique({
+    where: {
+      userId_courseId: { userId, courseId },
+    },
+    select: { uuid: true },
+  });
+
+  const verifyUuid = existingCertificate?.uuid ?? crypto.randomUUID();
+  const baseUrl = (process.env.APP_URL ?? process.env.NEXTAUTH_URL ?? "https://eduhistory.uz").replace(/\/$/, "");
+  const verifyUrl = `${baseUrl}/sertifikat/${verifyUuid}`;
+
+  let qrPngBytes: Uint8Array | null = null;
+  try {
+    qrPngBytes = await QRCode.toBuffer(verifyUrl, {
+      type: "png",
+      width: 320,
+      margin: 2,
+      errorCorrectionLevel: "H",
+      color: { dark: "#065F46", light: "#ffffff" },
+    });
+  } catch {
+    // QR generation failed
+  }
+
+  const certSettings = await prisma.certificateSettings.findUnique({
+    where: { id: CERTIFICATE_SETTINGS_ID },
+    select: { logoUrl: true, signatureUrl: true },
+  });
+
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([PAGE_W, PAGE_H]);
+  const titleFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const textFont = await pdf.embedFont(StandardFonts.Helvetica);
+
+  const left = MARGIN;
+  const right = PAGE_W - MARGIN;
+  const top = PAGE_H - MARGIN;
+  const bottom = MARGIN;
+
+  page.drawRectangle({
+    x: left,
+    y: bottom,
+    width: INNER_W,
+    height: INNER_H,
+    borderColor: EMERALD_DARK,
+    borderWidth: 1.2,
+  });
+
+  const bannerH = 72;
+  const bannerBottom = top - bannerH;
+  page.drawRectangle({
+    x: left,
+    y: bannerBottom,
+    width: INNER_W,
+    height: bannerH,
+    color: EMERALD_DARK,
+  });
+
+  let logoDrawn = false;
+  if (certSettings?.logoUrl) {
+    const imgData = await loadImageBytes(certSettings.logoUrl);
+    if (imgData) {
+      try {
+        const img = imgData.isPng ? await pdf.embedPng(imgData.bytes) : await pdf.embedJpg(imgData.bytes);
+        const maxLogoW = 220;
+        const maxLogoH = 32;
+        const scale = Math.min(maxLogoW / img.width, maxLogoH / img.height, 1);
+        const logoW = img.width * scale;
+        const logoH = img.height * scale;
+        const logoX = (PAGE_W - logoW) / 2;
+        const logoY = bannerBottom + bannerH - logoH - 12;
+        page.drawImage(img, { x: logoX, y: logoY, width: logoW, height: logoH });
+        logoDrawn = true;
+      } catch {
+        // embed failed
+      }
+    }
+  }
+  if (!logoDrawn) {
+    page.drawText("EDUHISTORY", {
+      x: centerX(titleFont, "EDUHISTORY", 14),
+      y: bannerBottom + 42,
+      size: 14,
+      font: titleFont,
+      color: rgb(1, 1, 1),
+    });
+  }
+  page.drawText("SERTIFIKAT", {
+    x: centerX(titleFont, "SERTIFIKAT", 20),
+    y: bannerBottom + 14,
+    size: 20,
+    font: titleFont,
+    color: rgb(1, 1, 1),
+  });
+
+  const contentTop = bannerBottom - 24;
+  const certLine = "Quyidagi shaxs quyidagi kursni muvaffaqiyatli yakunlaganligini tasdiqlaydi:";
+  page.drawText(certLine, {
+    x: centerX(textFont, certLine, 10),
+    y: contentTop - 14,
+    size: 10,
+    font: textFont,
+    color: SLATE_MUTED,
+  });
+
+  const name = user.fullName;
+  page.drawText(name, {
+    x: centerX(titleFont, name, 26),
+    y: contentTop - 58,
+    size: 26,
+    font: titleFont,
+    color: SLATE,
+  });
+
+  const courseTitle = course.title;
+  const courseLabel = "Kurs: ";
+  const courseFull = courseLabel + courseTitle;
+  const maxCourseW = INNER_W - 80;
+  let courseSize = 14;
+  let courseTextW = titleFont.widthOfTextAtSize(courseFull, courseSize);
+  if (courseTextW > maxCourseW) {
+    courseSize = 11;
+    courseTextW = titleFont.widthOfTextAtSize(courseFull, courseSize);
+  }
+  page.drawText(courseLabel, {
+    x: (PAGE_W - courseTextW) / 2,
+    y: contentTop - 88,
+    size: courseSize,
+    font: textFont,
+    color: SLATE_MUTED,
+  });
+  page.drawText(courseTitle, {
+    x: (PAGE_W - courseTextW) / 2 + textFont.widthOfTextAtSize(courseLabel, courseSize),
+    y: contentTop - 88,
+    size: courseSize,
+    font: titleFont,
+    color: SLATE,
+  });
+
+  const finalScore = 100;
+  const statsY = contentTop - 168;
+  const statFontSize = 10;
+  const labelFontSize = 8;
+  const boxW = (INNER_W - 80) / 4;
+  const boxStart = left + 40;
+  const statItems: [string, string][] = [
+    ["Final ball", `${finalScore}%`],
+    ["Darslar", `${totalLessons}`],
+    ["O'tilgan quiz", `${passedQuizzes}`],
+    ["Sana", new Date().toLocaleDateString("uz-UZ")],
+  ];
+  statItems.forEach(([label, value], i) => {
+    const cx = boxStart + i * boxW + boxW / 2;
+    const labelW = textFont.widthOfTextAtSize(label, labelFontSize);
+    const valueW = titleFont.widthOfTextAtSize(value, statFontSize);
+    page.drawText(label, {
+      x: cx - labelW / 2,
+      y: statsY - 6,
+      size: labelFontSize,
+      font: textFont,
+      color: SLATE_MUTED,
+    });
+    page.drawText(value, {
+      x: cx - valueW / 2,
+      y: statsY - 22,
+      size: statFontSize,
+      font: titleFont,
+      color: EMERALD_DARK,
+    });
+  });
+
+  const footerAreaTop = bottom + 100;
+  const sealX = right - 56;
+  const sealY = footerAreaTop - 24;
+  const footerY = bottom + 28;
+  page.drawText("Eduhistory", {
+    x: centerX(titleFont, "Eduhistory", 12),
+    y: footerY,
+    size: 12,
+    font: titleFont,
+    color: EMERALD_DARK,
+  });
+  page.drawText("O'quv boshqaruv tizimi", {
+    x: centerX(textFont, "O'quv boshqaruv tizimi", 8),
+    y: footerY - 14,
+    size: 8,
+    font: textFont,
+    color: SLATE_MUTED,
+  });
+
+  if (certSettings?.signatureUrl) {
+    const sigData = await loadImageBytes(certSettings.signatureUrl);
+    if (sigData) {
+      try {
+        const sigImg = sigData.isPng ? await pdf.embedPng(sigData.bytes) : await pdf.embedJpg(sigData.bytes);
+        const maxSigW = 88;
+        const maxSigH = 36;
+        const sigScale = Math.min(maxSigW / sigImg.width, maxSigH / sigImg.height, 1);
+        const sigW = sigImg.width * sigScale;
+        const sigH = sigImg.height * sigScale;
+        const sigX = sealX - 110;
+        const sigY = footerAreaTop - 50;
+        page.drawImage(sigImg, { x: sigX, y: sigY, width: sigW, height: sigH });
+      } catch {
+        // embed failed
+      }
+    }
+  }
+
+  page.drawCircle({ x: sealX, y: sealY, size: 28, borderColor: EMERALD_DARK, borderWidth: 1.5 });
+  page.drawCircle({ x: sealX, y: sealY, size: 24, borderColor: GOLD, borderWidth: 0.5 });
+  page.drawText("E", {
+    x: sealX - titleFont.widthOfTextAtSize("E", 16) / 2,
+    y: sealY - 5.5,
+    size: 16,
+    font: titleFont,
+    color: EMERALD_DARK,
+  });
+
+  const qrSize = 80;
+  const qrPadding = 12;
+  const verifyLabel = "Haqiqiyligini tekshirish:";
+  const qrScanLabel = "QR skanerlang";
+  const labelSize = 10;
+  const qrBoxW = Math.max(160, Math.ceil(Math.max(
+    titleFont.widthOfTextAtSize(verifyLabel, labelSize),
+    textFont.widthOfTextAtSize(qrScanLabel, labelSize),
+  ) + qrPadding * 2));
+  const qrBoxH = qrPadding + labelSize + 6 + qrSize + 6 + labelSize + qrPadding;
+  const qrBoxX = left + 16;
+  const qrBoxY = bottom + 16;
+
+  page.drawRectangle({ x: qrBoxX, y: qrBoxY, width: qrBoxW, height: qrBoxH, borderColor: EMERALD_DARK, borderWidth: 1 });
+  page.drawRectangle({ x: qrBoxX + 1, y: qrBoxY + 1, width: qrBoxW - 2, height: qrBoxH - 2, borderColor: EMERALD_LIGHT, borderWidth: 0.5 });
+
+  const topLabelY = qrBoxY + qrBoxH - qrPadding - labelSize;
+  page.drawText(verifyLabel, {
+    x: qrBoxX + (qrBoxW - titleFont.widthOfTextAtSize(verifyLabel, labelSize)) / 2,
+    y: topLabelY,
+    size: labelSize,
+    font: titleFont,
+    color: EMERALD_DARK,
+  });
+
+  if (qrPngBytes) {
+    try {
+      const qrImage = await pdf.embedPng(qrPngBytes);
+      const qrX = qrBoxX + (qrBoxW - qrSize) / 2;
+      const qrY = topLabelY - 6 - qrSize;
+      page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+    } catch {
+      // ignore
+    }
+  }
+
+  const bottomLabelY = qrBoxY + qrPadding;
+  page.drawText(qrScanLabel, {
+    x: qrBoxX + (qrBoxW - textFont.widthOfTextAtSize(qrScanLabel, labelSize)) / 2,
+    y: bottomLabelY,
+    size: labelSize,
+    font: textFont,
+    color: EMERALD_DARK,
+  });
+
+  const bytes = await pdf.save();
+  const fileName = `certificate-completion-${userId}-${courseId}.pdf`.replace(/[^a-zA-Z0-9-_.]/g, "_");
+  const relativePath = `/certificates/${fileName}`;
+  const outputDir = join(process.cwd(), "public", "certificates");
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(join(outputDir, fileName), bytes);
+
+  const data = {
+    pdfUrl: relativePath,
+    finalScore,
+    completionPercent: 100,
+    totalLessons,
+    totalQuizzesPassed: passedQuizzes,
+    metadata: { generatedBy } as object,
+  };
+
+  const existing = await prisma.certificate.findUnique({
+    where: { userId_courseId: { userId, courseId } },
+  });
+
+  if (existing) {
+    return prisma.certificate.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  try {
+    return await prisma.certificate.create({
+      data: {
+        uuid: verifyUuid,
+        user: { connect: { id: userId } },
+        course: { connect: { id: courseId } },
+        ...data,
+      },
+    });
+  } catch (createErr) {
+    const msg = String(createErr instanceof Error ? createErr.message : createErr);
+    if (msg.includes("quizAttempt") || msg.includes("user") || msg.includes("missing")) {
+      const id = `cert_${verifyUuid.replace(/-/g, "").slice(0, 22)}`;
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "Certificate" ("id", "uuid", "userId", "courseId", "quizAttemptId", "pdfUrl", "finalScore", "completionPercent", "totalLessons", "totalQuizzesPassed", "metadata", "issuedAt")
+         VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $9, $10::jsonb, NOW())
+         ON CONFLICT ("userId", "courseId") DO UPDATE SET "pdfUrl" = EXCLUDED."pdfUrl", "finalScore" = EXCLUDED."finalScore", "completionPercent" = EXCLUDED."completionPercent", "totalLessons" = EXCLUDED."totalLessons", "totalQuizzesPassed" = EXCLUDED."totalQuizzesPassed", "metadata" = EXCLUDED."metadata"`,
+        id,
+        verifyUuid,
+        userId,
+        courseId,
+        relativePath,
+        finalScore,
+        100,
+        totalLessons,
+        passedQuizzes,
+        JSON.stringify({ generatedBy }),
+      );
+      const rows = await prisma.$queryRawUnsafe<Array<{
+        id: string;
+        uuid: string;
+        userId: string;
+        courseId: string;
+        quizAttemptId: string | null;
+        pdfUrl: string | null;
+        finalScore: number;
+        completionPercent: number;
+        totalLessons: number;
+        totalQuizzesPassed: number;
+        metadata: unknown;
+        issuedAt: Date;
+      }>>(
+        `SELECT "id", "uuid", "userId", "courseId", "quizAttemptId", "pdfUrl", "finalScore", "completionPercent", "totalLessons", "totalQuizzesPassed", "metadata", "issuedAt" FROM "Certificate" WHERE "userId" = $1 AND "courseId" = $2`,
+        userId,
+        courseId,
+      );
+      const cert = rows[0];
+      if (!cert) throw new Error("Sertifikat yaratildi lekin o'qib bo'lmadi.");
+      return cert;
+    }
+    throw createErr;
+  }
 }
