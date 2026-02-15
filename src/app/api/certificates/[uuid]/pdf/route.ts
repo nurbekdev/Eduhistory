@@ -32,9 +32,9 @@ export async function GET(request: Request, context: RouteContext) {
     );
   }
 
-  const buffer = Buffer.isBuffer(certificate.pdfContent)
-    ? certificate.pdfContent
-    : Buffer.from(certificate.pdfContent as ArrayBuffer);
+  const raw = certificate.pdfContent;
+  const buffer =
+    Buffer.isBuffer(raw) ? raw : Buffer.from(raw as unknown as Uint8Array);
 
   const url = new URL(request.url);
   const isDownload = url.searchParams.get("download") === "1";
