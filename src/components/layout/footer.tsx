@@ -93,17 +93,6 @@ export function Footer() {
           <p className="text-center text-xs text-slate-600 dark:text-slate-400 sm:text-sm">
             © {currentYear} Eduhistory. Barcha huquqlar himoyalangan.
           </p>
-          <p className="text-center text-xs text-slate-600 dark:text-slate-400 sm:text-sm">
-            Developer by{" "}
-            <a
-              href="https://t.me/npgoo"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-slate-800 dark:text-slate-100 underline-offset-2 hover:underline"
-            >
-              Nurbek Po&apos;latov
-            </a>
-          </p>
         </div>
       </div>
     </footer>
