@@ -1,4 +1,4 @@
-# Eduhistory LMS
+# Eduhistory LMS TEST
 
 Eduhistory - to'liq o'zbek tilidagi LMS platforma skeleti.
 
