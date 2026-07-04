@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock3, Save, TriangleAlert } from "lucide-react";
+import { CheckCircle2, Circle, Clock3, Save, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -302,84 +302,135 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
   }
 
   const activeQuestion = questions[currentQuestionIndex];
+  const progressPct = questions.length > 0 ? Math.round((answeredCount / questions.length) * 100) : 0;
+  const isLowTime = remainingSeconds !== null && remainingSeconds <= 60;
 
   return (
     <div className="space-y-4">
-      <Card className="sticky top-20 z-20 border-emerald-200 bg-white/95 backdrop-blur">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold">{query.data.quiz.title}</p>
-            <p className="text-xs text-zinc-500">{query.data.quiz.course.title}</p>
+      {/* Sticky header */}
+      <div className="sticky top-16 z-20 rounded-xl border border-emerald-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold dark:text-slate-100">{query.data.quiz.title}</p>
+            <p className="truncate text-xs text-zinc-500 dark:text-slate-400">{query.data.quiz.course.title}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="warning">Attempt #{query.data.attemptNumber}</Badge>
-            <Badge>{answeredCount}/{questions.length} javob berilgan</Badge>
-            <Badge variant={remainingSeconds !== null && remainingSeconds <= 60 ? "warning" : "default"} className="gap-1">
-              <Clock3 className="size-3.5" />
+            <Badge variant="warning" className="text-xs">#{query.data.attemptNumber}-urinish</Badge>
+            <Badge className="gap-1 text-xs">
+              <CheckCircle2 className="size-3" />
+              {answeredCount}/{questions.length}
+            </Badge>
+            <Badge
+              variant={isLowTime ? "warning" : "default"}
+              className={`gap-1 font-mono text-xs tabular-nums ${isLowTime ? "animate-pulse" : ""}`}
+            >
+              <Clock3 className="size-3" />
               {remainingSeconds === null ? "–:–" : formatRemaining(remainingSeconds)}
             </Badge>
-            <Badge variant="locked" className="gap-1">
-              <Save className="size-3.5" />
-              {savingDraft
-                ? "Saqlanmoqda..."
-                : lastSavedAt
-                  ? `Saqlandi ${lastSavedAt.toLocaleTimeString("uz-UZ")}`
-                  : "Qoralama yo'q"}
+            <Badge variant="locked" className="gap-1 text-xs">
+              <Save className="size-3" />
+              {savingDraft ? "Saqlanmoqda..." : lastSavedAt ? `${lastSavedAt.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" })}` : "—"}
             </Badge>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        {/* Progress bar */}
+        <div className="h-1 w-full overflow-hidden rounded-b-xl bg-zinc-100 dark:bg-slate-800">
+          <div
+            className="h-full bg-emerald-500 transition-all duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
 
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Savol navigator</CardTitle>
+      <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
+        {/* Question navigator */}
+        <Card className="h-fit lg:sticky lg:top-36">
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-sm font-semibold text-zinc-700 dark:text-slate-300">
+              Savollar ({answeredCount}/{questions.length})
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {questions.map((question, index) => {
-              const answered = isAnswered(question, selectedAnswers[question.id]);
-              const active = index === currentQuestionIndex;
-              return (
-                <button
-                  key={question.id}
-                  type="button"
-                  onClick={() => setCurrentQuestionIndex(index)}
-                  className={`w-full rounded-md border px-3 py-2 text-left text-sm transition dark:border-slate-700 dark:bg-slate-800/50 ${
-                    active
-                      ? "border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-900/30"
-                      : answered
-                        ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-900/20"
-                        : "border-zinc-200 bg-white hover:bg-zinc-50 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  Savol {index + 1}
-                </button>
-              );
-            })}
+          <CardContent className="pb-4">
+            <div className="grid grid-cols-5 gap-1.5">
+              {questions.map((question, index) => {
+                const answered = isAnswered(question, selectedAnswers[question.id]);
+                const active = index === currentQuestionIndex;
+                return (
+                  <button
+                    key={question.id}
+                    type="button"
+                    title={`Savol ${index + 1}${answered ? " ✓" : ""}`}
+                    onClick={() => setCurrentQuestionIndex(index)}
+                    className={`flex h-9 w-full items-center justify-center rounded-md text-xs font-medium transition-all ${
+                      active
+                        ? "bg-emerald-500 text-white shadow-sm ring-2 ring-emerald-300 dark:ring-emerald-700"
+                        : answered
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                          : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Legend */}
+            <div className="mt-3 flex flex-col gap-1 text-xs text-zinc-500 dark:text-slate-400">
+              <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-emerald-500 inline-block" /> Joriy savol</span>
+              <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-emerald-100 inline-block dark:bg-emerald-900/40" /> Javob berilgan</span>
+              <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-zinc-100 inline-block dark:bg-slate-800" /> Javob berilmagan</span>
+            </div>
           </CardContent>
         </Card>
 
+        {/* Question card */}
         <Card>
-          <CardHeader>
-            <CardTitle>{currentQuestionIndex + 1}. {activeQuestion?.text}</CardTitle>
+          <CardHeader className="pb-3">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                {currentQuestionIndex + 1}
+              </span>
+              <CardTitle className="text-base leading-snug">{activeQuestion?.text}</CardTitle>
+            </div>
+            <div className="mt-1 ml-10 text-xs text-zinc-400 dark:text-slate-500">
+              {activeQuestion?.type === "MULTIPLE_CHOICE" && "Bitta to'g'ri javobni tanlang"}
+              {activeQuestion?.type === "MULTIPLE_SELECT" && "Bir nechta to'g'ri javob bo'lishi mumkin"}
+              {activeQuestion?.type === "TRUE_FALSE" && "To'g'ri yoki noto'g'riligini belgilang"}
+              {activeQuestion?.type === "MATCHING" && "Chap tomondagi elementlarni o'ng bilan moslashtiring"}
+              {activeQuestion?.type === "NUMERICAL" && "Raqamli javobni kiriting"}
+              {activeQuestion?.type === "CLOZE" && "Bo'sh joylarga javob kiriting"}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {activeQuestion && QUESTION_TYPES_OPTION_BASED.includes(activeQuestion.type as (typeof QUESTION_TYPES_OPTION_BASED)[number]) && (
               <div className="space-y-2">
-                {(activeQuestion.options ?? []).map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => toggleOption(activeQuestion.id, option.id, activeQuestion.type as "MULTIPLE_CHOICE" | "MULTIPLE_SELECT")}
-                    className={`w-full rounded-md border px-3 py-3 text-left text-sm transition dark:border-slate-600 dark:bg-slate-800/50 ${
-                      (selectedAnswers[activeQuestion.id] as string[] | undefined)?.includes(option.id)
-                        ? "border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/30"
-                        : "border-zinc-200 bg-white hover:bg-zinc-50 dark:hover:bg-slate-700"
-                    }`}
-                  >
-                    <span>{option.text}</span>
-                  </button>
-                ))}
+                {(activeQuestion.options ?? []).map((option, oi) => {
+                  const selected = (selectedAnswers[activeQuestion.id] as string[] | undefined)?.includes(option.id);
+                  const label = String.fromCharCode(65 + oi); // A, B, C, D...
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => toggleOption(activeQuestion.id, option.id, activeQuestion.type as "MULTIPLE_CHOICE" | "MULTIPLE_SELECT")}
+                      className={`group flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all ${
+                        selected
+                          ? "border-emerald-500 bg-emerald-50 shadow-sm dark:border-emerald-500 dark:bg-emerald-900/30"
+                          : "border-zinc-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40 dark:border-slate-600 dark:bg-slate-800/50 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/10"
+                      }`}
+                    >
+                      <span className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                        selected
+                          ? "bg-emerald-500 text-white"
+                          : "bg-zinc-100 text-zinc-500 group-hover:bg-emerald-100 group-hover:text-emerald-600 dark:bg-slate-700 dark:text-slate-400"
+                      }`}>
+                        {selected ? <CheckCircle2 className="size-4" /> : label}
+                      </span>
+                      <span className={selected ? "font-medium text-emerald-800 dark:text-emerald-200" : "text-zinc-700 dark:text-slate-300"}>
+                        {option.text}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -408,35 +459,45 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
               const current = (selectedAnswers[activeQuestion.id] as { pairs?: { leftIndex: number; rightIndex: number }[] } | undefined)?.pairs ?? [];
               return (
                 <div className="space-y-3">
-                  <p className="text-xs text-zinc-500 dark:text-slate-400">Chap elementni o'ng bilan moslashtiring.</p>
-                  <div className="space-y-2">
-                    {pairs.map((pair, leftIndex) => (
-                      <div key={leftIndex} className="flex items-center gap-2">
-                        <span className="min-w-[120px] rounded border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800">
-                          {pair.left || "—"}
-                        </span>
-                        <select
-                          className="rounded border border-zinc-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                          value={current.find((p) => p.leftIndex === leftIndex)?.rightIndex ?? ""}
-                          onChange={(e) => {
-                            const rightIndex = e.target.value === "" ? -1 : Number(e.target.value);
-                            setSelectedAnswers((prev) => {
-                              const prevPairs = (prev[activeQuestion.id] as { pairs?: { leftIndex: number; rightIndex: number }[] } | undefined)?.pairs ?? [];
-                              const next = prevPairs.filter((p) => p.leftIndex !== leftIndex);
-                              if (rightIndex >= 0) next.push({ leftIndex, rightIndex });
-                              return { ...prev, [activeQuestion.id]: { pairs: next } };
-                            });
-                          }}
-                        >
-                          <option value="">Tanlang</option>
-                          {pairs.map((p, ri) => (
-                            <option key={ri} value={ri}>
-                              {p.right || "—"}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ))}
+                  <div className="rounded-lg border border-zinc-200 dark:border-slate-700 overflow-hidden">
+                    <div className="grid grid-cols-2 gap-0 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-500 dark:bg-slate-800/60 dark:text-slate-400">
+                      <span>Savol</span>
+                      <span>Javob</span>
+                    </div>
+                    {pairs.map((pair, leftIndex) => {
+                      const matched = current.find((p) => p.leftIndex === leftIndex);
+                      return (
+                        <div key={leftIndex} className={`grid grid-cols-2 gap-0 border-t border-zinc-100 dark:border-slate-700/60 ${matched ? "bg-emerald-50/40 dark:bg-emerald-900/10" : ""}`}>
+                          <div className="flex items-center px-3 py-2.5 text-sm font-medium text-zinc-700 dark:text-slate-300 border-r border-zinc-100 dark:border-slate-700/60">
+                            {pair.left || "—"}
+                          </div>
+                          <div className="px-2 py-1.5">
+                            <select
+                              className={`w-full rounded-md border px-2 py-1 text-sm transition dark:bg-slate-800 dark:text-slate-100 ${
+                                matched
+                                  ? "border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-200"
+                                  : "border-zinc-300 bg-white dark:border-slate-600"
+                              }`}
+                              value={matched?.rightIndex ?? ""}
+                              onChange={(e) => {
+                                const rightIndex = e.target.value === "" ? -1 : Number(e.target.value);
+                                setSelectedAnswers((prev) => {
+                                  const prevPairs = (prev[activeQuestion.id] as { pairs?: { leftIndex: number; rightIndex: number }[] } | undefined)?.pairs ?? [];
+                                  const next = prevPairs.filter((p) => p.leftIndex !== leftIndex);
+                                  if (rightIndex >= 0) next.push({ leftIndex, rightIndex });
+                                  return { ...prev, [activeQuestion.id]: { pairs: next } };
+                                });
+                              }}
+                            >
+                              <option value="">— Tanlang —</option>
+                              {pairs.map((p, ri) => (
+                                <option key={ri} value={ri}>{p.right || "—"}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -485,32 +546,54 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
             )}
 
             {activeQuestion?.explanation ? (
-              <div className="rounded-md border bg-zinc-50 p-3 text-xs text-zinc-600">
-                <TriangleAlert className="mr-1 inline size-3.5" />
-                Eslatma: {activeQuestion.explanation}
+              <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+                <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+                <span>{activeQuestion.explanation}</span>
               </div>
             ) : null}
 
-            <div className="flex flex-wrap justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4 dark:border-slate-700">
               <Button
                 variant="outline"
                 onClick={() => setCurrentQuestionIndex((prev) => Math.max(prev - 1, 0))}
                 disabled={currentQuestionIndex === 0}
+                className="min-w-[100px]"
               >
-                Oldingi
+                ← Oldingi
               </Button>
 
+              <span className="text-xs text-zinc-400 dark:text-slate-500">
+                {currentQuestionIndex + 1} / {questions.length}
+              </span>
+
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentQuestionIndex((prev) => Math.min(prev + 1, questions.length - 1))}
-                  disabled={currentQuestionIndex === questions.length - 1}
-                >
-                  Keyingi
-                </Button>
-                <Button onClick={() => void onSubmit(false)} disabled={submitting}>
-                  {submitting ? "Yakunlanmoqda..." : "Quizni yakunlash"}
-                </Button>
+                {currentQuestionIndex < questions.length - 1 ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentQuestionIndex((prev) => Math.min(prev + 1, questions.length - 1))}
+                    className="min-w-[100px]"
+                  >
+                    Keyingi →
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => void onSubmit(false)}
+                    disabled={submitting}
+                    className="min-w-[140px] bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {submitting ? "Yakunlanmoqda..." : "✓ Quizni yakunlash"}
+                  </Button>
+                )}
+                {currentQuestionIndex < questions.length - 1 && (
+                  <Button
+                    onClick={() => void onSubmit(false)}
+                    disabled={submitting}
+                    variant="outline"
+                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400"
+                  >
+                    {submitting ? "..." : "Yakunlash"}
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>

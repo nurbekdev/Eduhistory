@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -78,7 +78,10 @@ export function ShareCertificateDrawer({
     }
   }, [shareUrl, courseTitle]);
 
-  const canNativeShare = typeof navigator !== "undefined" && Boolean(navigator.share);
+  const [canNativeShare, setCanNativeShare] = useState(false);
+  useEffect(() => {
+    setCanNativeShare(Boolean(navigator.share));
+  }, []);
 
   return (
     <>

@@ -12,6 +12,7 @@ import { getT } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/messages";
 import { prisma } from "@/lib/prisma";
 
+import { RegenerateCertificateButton } from "./regenerate-certificate-button";
 import { ShareCertificateDrawer } from "./share-certificate-drawer";
 
 function linkedInAddCertUrl(certUrl: string, courseTitle: string): string {
@@ -79,16 +80,11 @@ export default async function CertificatesPage() {
         ) : (
           certificates.map((certificate) => {
             const verifyUrl = `${baseUrl.replace(/\/$/, "")}/sertifikat/${certificate.uuid}`;
-            const issuedDate = new Date(certificate.issuedAt).toLocaleDateString(locale === "uz" ? "uz-UZ" : "en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            });
             // API orqali PDF (serverless da public fayl saqlanmaydi, pdfContent ishlatiladi)
             const pdfViewUrl = `/api/certificates/${certificate.uuid}/pdf`;
             const pdfDownloadUrl = `${pdfViewUrl}?download=1`;
             return (
-              <Card key={certificate.id} className="flex w-[320px] shrink-0 flex-col overflow-hidden border-slate-200 dark:border-slate-700">
+              <Card key={certificate.id} className="flex w-[360px] shrink-0 flex-col overflow-hidden border-slate-200 dark:border-slate-700">
                 <CardContent className="flex flex-1 flex-col p-0">
                   <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-700">
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -96,11 +92,11 @@ export default async function CertificatesPage() {
                     </h3>
                   </div>
                   <div className="flex justify-center bg-slate-100 px-4 py-4 dark:bg-slate-800/50">
-                    <div className="w-full max-w-[240px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900">
+                    <div className="w-full max-w-[308px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900">
                       <iframe
                         title={certificate.course.title}
                         src={`${pdfViewUrl}#view=FitH&toolbar=0&navpanes=0`}
-                        className="aspect-[842/595] min-h-[200px] w-full border-0"
+                        className="aspect-[842/595] min-h-[218px] w-full border-0"
                       />
                     </div>
                   </div>
@@ -108,6 +104,9 @@ export default async function CertificatesPage() {
                     <Button asChild variant="outline" size="sm" className="rounded border-slate-300 text-xs dark:border-slate-600">
                       <Link href={`/sertifikat/${certificate.uuid}`}>QR tekshirish</Link>
                     </Button>
+                    <div className="flex-1">
+                      <RegenerateCertificateButton uuid={certificate.uuid} label="Yangilash" />
+                    </div>
                   </div>
                   <div className="flex flex-col gap-2 p-4">
                     <Button asChild className="w-full bg-slate-900 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">

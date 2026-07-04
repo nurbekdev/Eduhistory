@@ -39,7 +39,7 @@ export function CertificateSettingsForm() {
     const base = typeof window !== "undefined" ? window.location.origin : "";
     const sampleVerifyUrl = `${base}/sertifikat/sample-uuid-preview`;
     import("qrcode")
-      .then((qr) => qr.toDataURL(sampleVerifyUrl, { width: 80, margin: 1, color: { dark: "#065F46", light: "#ffffff" } }))
+      .then((qr) => qr.toDataURL(sampleVerifyUrl, { width: 120, margin: 1, color: { dark: "#091224", light: "#ffffff" } }))
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(null));
   }, []);
@@ -274,53 +274,113 @@ export function CertificateSettingsForm() {
         </Button>
       </div>
 
-      <Card className="overflow-hidden border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800">
-        <CardHeader className="border-b border-slate-200 dark:border-slate-700 bg-gradient-to-br from-emerald-600 to-teal-600 py-4">
+      <Card className="overflow-hidden border-2 border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-800">
+        <CardHeader className="border-b border-slate-200 bg-[#091224] py-4 dark:border-slate-700">
           <CardTitle className="text-center text-sm font-medium text-white">Sertifikat ko&#39;rinishi (namuna)</CardTitle>
-          <p className="text-center text-xs text-emerald-100">Logo, imzo va QR avtomatik generatsiya qilinadi.</p>
+          <p className="text-center text-xs text-[#ead39b]">Logo, imzo va QR avtomatik generatsiya qilinadi.</p>
         </CardHeader>
         <CardContent className="p-0">
           <div
-            className="relative mx-auto flex flex-col items-center justify-center px-6 py-8"
-            style={{ aspectRatio: "842/595", maxWidth: "100%", minHeight: 320 }}
+            className="relative mx-auto flex items-center justify-center bg-slate-100 px-4 py-6 dark:bg-slate-900/40"
+            style={{ maxWidth: "100%" }}
           >
-            <div className="absolute inset-0 flex flex-col rounded-b-2xl border-x-2 border-b-2 border-slate-200 dark:border-slate-600 bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-800/80">
-              <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 pt-6">
-                {logoUrl && logoSrc ? (
-                  <div className="relative h-24 w-48 max-w-[90%]">
-                    <img src={logoSrc} alt="" className="h-full w-full object-contain object-center" />
-                  </div>
-                ) : (
-                  <div className="flex h-24 w-48 max-w-[90%] items-center justify-center rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-xs text-slate-400">
-                    Logo
-                  </div>
-                )}
-                <p className="text-center text-lg font-bold text-slate-900 dark:text-slate-100">SERTIFIKAT</p>
-                <p className="text-center text-xs text-slate-500 dark:text-slate-400">Quyidagicha tasdiqlanadi</p>
-                <p className="mt-1 text-center font-semibold text-slate-900 dark:text-slate-100">Ism Familiya</p>
-                <p className="text-center text-sm text-slate-600 dark:text-slate-300">Kurs nomi bo&#39;yicha kursni muvaffaqiyatli yakunladi</p>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Final ball: 95% • Sana: 12.02.2026</p>
-              </div>
-              <div className="mt-auto flex items-end justify-between gap-4 border-t border-slate-200 px-6 py-4 dark:border-slate-700">
-                <div className="flex flex-col items-center">
-                  {signatureUrl && signatureSrc ? (
-                    <img src={signatureSrc} alt="" className="h-12 w-24 object-contain" />
+            <div className="relative grid aspect-[842/595] w-full max-w-4xl grid-cols-[22%_1fr_18%] overflow-hidden rounded-lg border border-[#c9b47a] bg-[#fbf7ec] shadow-xl">
+              <div className="relative flex flex-col items-center justify-between bg-[#091224] px-4 py-6 text-center text-white">
+                <div className="w-full">
+                  {logoUrl && logoSrc ? (
+                    <div className="mx-auto h-14 w-32">
+                      <img src={logoSrc} alt="" className="h-full w-full object-contain object-center" />
+                    </div>
                   ) : (
-                    <div className="h-12 w-24 rounded border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-[10px] text-slate-400">
+                    <div className="mx-auto flex h-14 w-32 items-center justify-center border border-dashed border-[#c9b47a]/70 text-xs text-[#ead39b]">
+                      Logo
+                    </div>
+                  )}
+                  <p className="mt-4 text-[10px] font-medium uppercase tracking-[0.18em] text-[#ead39b]">Verified credential</p>
+                </div>
+                <div className="grid size-24 place-items-center rounded-full border border-[#c9b47a] bg-white/95 text-[#8a6225] shadow-sm">
+                  <div>
+                    <p className="text-2xl font-bold leading-none">EH</p>
+                    <p className="mt-1 text-[9px] text-slate-600">2026</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-[0.16em] text-[#ead39b]">Credential ID</p>
+                  <p className="mt-1 text-sm font-semibold">EDH-2026</p>
+                </div>
+              </div>
+
+              <div className="relative flex flex-col px-8 py-7">
+                <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em]">
+                  <span className="text-[#007a78]">Certificate of Completion</span>
+                  <span className="text-slate-500">Issued 12.02.2026</span>
+                </div>
+                <div className="mt-6 text-center">
+                  <p className="font-serif text-5xl font-bold leading-none text-[#091224]">SERTIFIKAT</p>
+                  <div className="mx-auto mt-3 h-px w-4/5 bg-[#c9b47a]" />
+                  <p className="mt-5 text-sm text-slate-500">Ushbu sertifikat bilan tasdiqlanadi</p>
+                  <p className="mt-3 font-serif text-3xl font-bold text-[#10203a]">Ism Familiya</p>
+                  <div className="mx-auto mt-2 h-0.5 w-64 bg-[#c9b47a]" />
+                  <p className="mx-auto mt-5 max-w-lg text-sm leading-6 text-slate-700">
+                    Eduhistory platformasida kursni muvaffaqiyatli yakunlab, yakuniy baholash talablarini bajardi.
+                  </p>
+                </div>
+                <div className="mx-auto mt-5 w-full border border-[#c9b47a]/70 bg-white px-5 py-3 text-center shadow-sm">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a6225]">Kurs nomi</p>
+                  <p className="mt-1 text-base font-semibold text-[#091224]">Professional kurs namunasi</p>
+                </div>
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  {[
+                    ["95%", "Final ball"],
+                    ["24 ta", "Darslar"],
+                    ["8 ta", "Testlar"],
+                    ["Tarix", "Kategoriya"],
+                  ].map(([value, label]) => (
+                    <div key={label} className="border border-[#d7c596] bg-white px-2 py-2 text-center">
+                      <p className="text-sm font-bold text-[#091224]">{value}</p>
+                      <p className="mt-1 text-[9px] uppercase tracking-[0.08em] text-slate-500">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-auto flex items-end justify-between">
+                  <div className="w-36">
+                  {signatureUrl && signatureSrc ? (
+                    <img src={signatureSrc} alt="" className="h-12 w-full object-contain" />
+                  ) : (
+                    <div className="flex h-12 w-full items-center justify-center border border-dashed border-slate-300 text-[10px] text-slate-400">
                       Imzo
                     </div>
                   )}
-                  <span className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Imzo</span>
+                    <div className="mt-1 h-px bg-[#c9b47a]" />
+                    <span className="mt-1 block text-[10px] font-semibold text-[#10203a]">Platforma rahbari</span>
+                  </div>
+                  <div className="grid size-16 place-items-center rounded-full border border-[#c9b47a] bg-white text-center text-[#8a6225]">
+                    <span className="text-xl font-bold">EH</span>
+                  </div>
+                  <div className="w-36 text-right">
+                    <div className="h-12 border border-dashed border-[#007a78]/50" />
+                    <div className="mt-1 h-px bg-[#c9b47a]" />
+                    <span className="mt-1 block text-[10px] font-semibold text-[#10203a]">Kurs mentori</span>
+                  </div>
                 </div>
-                <div className="flex flex-col items-center">
+              </div>
+
+              <div className="flex flex-col items-center border-l border-[#d7c596] bg-white px-4 py-6 text-center">
+                <div className="mb-5 w-full bg-[#091224] px-3 py-3 text-white">
+                  <p className="text-sm font-bold text-[#ead39b]">VERIFY</p>
+                  <p className="text-[9px] uppercase tracking-[0.14em] text-white/70">Scan QR</p>
+                </div>
                   {qrDataUrl ? (
-                    <img src={qrDataUrl} alt="QR" className="size-20 rounded border border-slate-200 dark:border-slate-600" />
+                  <img src={qrDataUrl} alt="QR" className="size-24 border border-[#c9b47a] bg-white p-1" />
                   ) : (
-                    <div className="flex size-20 items-center justify-center rounded border border-dashed border-slate-300 dark:border-slate-600 text-[10px] text-slate-400">
+                  <div className="flex size-24 items-center justify-center border border-dashed border-slate-300 text-[10px] text-slate-400">
                       QR
                     </div>
                   )}
-                  <span className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Tekshirish</span>
+                <p className="mt-4 text-xs font-semibold text-[#091224]">Haqiqiyligini tekshirish</p>
+                <p className="mt-2 text-[10px] leading-4 text-slate-500">QR kod original sertifikat sahifasiga olib boradi.</p>
+                <div className="mt-auto w-full border border-[#d7c596] bg-[#f3ead3] px-2 py-2 text-[10px] font-semibold text-[#007a78]">
+                  100% COMPLETION
                 </div>
               </div>
             </div>

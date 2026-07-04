@@ -5,6 +5,25 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+/** Seeded Fisher-Yates shuffle — same attemptId always gives same order */
+function seededShuffle<T>(arr: T[], seed: string): T[] {
+  const result = [...arr];
+  // Simple hash from seed string
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+  }
+  const rng = () => {
+    h ^= h << 13; h ^= h >> 17; h ^= h << 5;
+    return (h >>> 0) / 0x100000000;
+  };
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 type RouteContext = {
   params: Promise<{ attemptId: string }>;
 };
@@ -76,13 +95,13 @@ export async function GET(_request: Request, context: RouteContext) {
       attemptLimit: attempt.quiz.attemptLimit,
       timeLimitMinutes: safeTimeLimitMinutes,
       course: attempt.quiz.course,
-      questions: attempt.quiz.questions.map((question) => ({
+      questions: seededShuffle(attempt.quiz.questions, attempt.id).map((question, qi) => ({
         id: question.id,
         text: question.text,
         explanation: question.explanation,
         type: question.type,
         metadata: question.metadata ?? undefined,
-        options: question.options.map((option) => ({
+        options: seededShuffle(question.options, `${attempt.id}-${qi}`).map((option) => ({
           id: option.id,
           text: option.text,
         })),

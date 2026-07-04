@@ -44,7 +44,7 @@ export async function GET(request: Request, context: RouteContext) {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": isDownload ? "attachment; filename=certificate.pdf" : "inline; filename=certificate.pdf",
-      "Cache-Control": "private, max-age=3600",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
     },
   });
 }

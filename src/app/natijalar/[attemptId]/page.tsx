@@ -157,22 +157,37 @@ export default async function ResultPage({ params }: ResultPageProps) {
       </Card>
 
       {attempt.quiz.isFinal && passed && attempt.certificate ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Sertifikat</CardTitle>
+        <Card className="overflow-hidden border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 dark:border-amber-800 dark:from-amber-950/40 dark:to-orange-950/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+              <svg className="size-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/>
+              </svg>
+              Tabriklaymiz! Sertifikat olindingiz
+            </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2">
-            <Button asChild>
-              <a href={`/api/certificates/${attempt.certificate.uuid}/pdf?download=1`} target="_blank" rel="noreferrer">
-                Sertifikat PDF
-              </a>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/sertifikat/${attempt.certificate.uuid}`}>Verify sahifasi</Link>
-            </Button>
-            <Button asChild variant="ghost">
-              <Link href="/sertifikatlar">Mening sertifikatlarim</Link>
-            </Button>
+          <CardContent className="space-y-4">
+            {/* PDF preview */}
+            <div className="mx-auto max-w-2xl overflow-hidden rounded-xl border border-amber-200 bg-white shadow-lg dark:border-amber-800 dark:bg-slate-900">
+              <iframe
+                title="Sertifikat"
+                src={`/api/certificates/${attempt.certificate.uuid}/pdf#view=FitH&toolbar=0&navpanes=0`}
+                className="aspect-[595/842] w-full border-0"
+              />
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild className="bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700">
+                <a href={`/api/certificates/${attempt.certificate.uuid}/pdf?download=1`} target="_blank" rel="noreferrer">
+                  PDF Yuklab olish
+                </a>
+              </Button>
+              <Button asChild variant="outline" className="border-amber-300 dark:border-amber-700">
+                <Link href={`/sertifikat/${attempt.certificate.uuid}`}>Sertifikatni tekshirish</Link>
+              </Button>
+              <Button asChild variant="ghost">
+                <Link href="/sertifikatlar">Barcha sertifikatlar</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : null}
