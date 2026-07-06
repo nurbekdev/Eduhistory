@@ -6,7 +6,7 @@ import { getToken } from "next-auth/jwt";
 import { routeAccess } from "@/lib/constants";
 
 const authPages = ["/kirish", "/royxatdan-otish"];
-const publicPrefixes = ["/", "/kurslar", "/sertifikat", "/api/auth"];
+const publicPrefixes = ["/", "/.well-known", "/kurslar", "/sertifikat", "/api/auth"];
 
 function isPublicPath(pathname: string) {
   return publicPrefixes.some((prefix) => {
