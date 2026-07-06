@@ -1,0 +1,53 @@
+plugins {
+    id "com.android.application"
+}
+
+def signingProps = new Properties()
+def signingFile = rootProject.file("signing.properties")
+if (signingFile.exists()) {
+    signingFile.withInputStream { signingProps.load(it) }
+}
+
+android {
+    namespace "uz.eduhistory.app"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "uz.eduhistory.app"
+        minSdk 23
+        targetSdk 36
+        versionCode 1
+        versionName "1.0.0"
+        resValue "string", "provider_authority", "${applicationId}.fileprovider"
+    }
+
+    signingConfigs {
+        release {
+            if (signingProps["storeFile"]) {
+                storeFile rootProject.file(signingProps["storeFile"])
+                storePassword signingProps["storePassword"]
+                keyAlias signingProps["keyAlias"]
+                keyPassword signingProps["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            if (signingProps["storeFile"]) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation "com.google.androidbrowserhelper:androidbrowserhelper:2.7.2"
+}

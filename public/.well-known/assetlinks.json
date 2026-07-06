@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "uz.eduhistory.app",
+      "sha256_cert_fingerprints": [
+        "08:35:FD:CE:84:10:47:AF:5D:E9:41:B5:DC:1D:D6:E7:16:E0:AD:24:E7:1B:F7:9E:BD:2D:A6:9F:59:32:F1:ED"
+      ]
+    }
+  }
+]

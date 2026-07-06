@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Eduhistory</string>
+    <string name="launch_url">https://eduhistory.uz/dashboard?source=twa</string>
+    <string name="asset_statements">[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://eduhistory.uz\"}}]</string>
+    <integer name="splash_screen_fade_out_duration">240</integer>
+</resources>

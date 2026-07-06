@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import { useState } from "react";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ToasterWithTheme } from "@/components/providers/toaster-theme";
+import { PwaRuntime } from "@/components/providers/pwa-runtime";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -23,6 +24,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
+          <PwaRuntime />
           {children}
           <ToasterWithTheme />
         </QueryClientProvider>

@@ -1,0 +1,6 @@
+## Copy to signing.properties or use the generated local android/signing.properties.
+## Do not commit real passwords or keystores.
+storeFile=keystores/eduhistory-upload.jks
+storePassword=CHANGE_ME
+keyAlias=eduhistory-upload
+keyPassword=CHANGE_ME

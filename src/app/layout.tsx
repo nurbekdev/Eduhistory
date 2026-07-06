@@ -47,6 +47,22 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/eduhistory-logo.svg",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Eduhistory",
+    statusBarStyle: "default",
+  },
+  applicationName: "Eduhistory",
+  formatDetection: {
+    telephone: false,
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "msapplication-TileColor": "#065f46",
+    "theme-color": "#065f46",
   },
   robots: {
     index: true,
@@ -102,4 +118,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
