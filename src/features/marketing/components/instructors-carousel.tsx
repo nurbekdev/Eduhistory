@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { TeacherCard } from "@/components/landing/teacher-card";
@@ -63,14 +63,14 @@ export function InstructorsCarousel({ instructors }: { instructors: InstructorIt
   const totalPages = Math.max(1, Math.ceil(count / cardsPerPage));
   const [pageIndex, setPageIndex] = useState(0);
 
-  const goNext = () => setPageIndex((i) => (i + 1) % totalPages);
-  const goPrev = () => setPageIndex((i) => (i - 1 + totalPages) % totalPages);
+  const goNext = useCallback(() => setPageIndex((i) => (i + 1) % totalPages), [totalPages]);
+  const goPrev = useCallback(() => setPageIndex((i) => (i - 1 + totalPages) % totalPages), [totalPages]);
 
   useEffect(() => {
     if (totalPages <= 1) return;
     const t = setInterval(goNext, 6000);
     return () => clearInterval(t);
-  }, [totalPages]);
+  }, [goNext, totalPages]);
 
   if (instructors.length === 0) {
     return (

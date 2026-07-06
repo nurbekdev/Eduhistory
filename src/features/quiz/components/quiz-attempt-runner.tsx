@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Circle, Clock3, Save, TriangleAlert } from "lucide-react";
+import { CheckCircle2, Clock3, Save, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -201,13 +201,19 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
     }
     if (Array.isArray(raw)) return raw;
     if (question.type === "MATCHING") {
-      const meta = (question.metadata ?? {}) as { pairs?: { left: string; right: string }[] };
+      const meta = (question.metadata ?? {}) as {
+        pairs?: { left: string; right: string }[];
+        leftItems?: string[];
+        rightItems?: string[];
+      };
       const pairs = meta.pairs ?? [];
+      const leftItems = meta.leftItems ?? pairs.map((pair) => pair.left);
+      const rightItems = meta.rightItems ?? pairs.map((pair) => pair.right);
       const idxPairs = (raw as { pairs?: { leftIndex: number; rightIndex: number }[] }).pairs ?? [];
       return {
         pairs: idxPairs.map((p) => ({
-          left: pairs[p.leftIndex]?.left ?? "",
-          right: pairs[p.rightIndex]?.right ?? "",
+          left: leftItems[p.leftIndex] ?? "",
+          right: rightItems[p.rightIndex] ?? "",
         })),
       };
     }
@@ -454,8 +460,14 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
             )}
 
             {activeQuestion?.type === "MATCHING" && (() => {
-              const meta = (activeQuestion.metadata ?? {}) as { pairs?: { left: string; right: string }[] };
+              const meta = (activeQuestion.metadata ?? {}) as {
+                pairs?: { left: string; right: string }[];
+                leftItems?: string[];
+                rightItems?: string[];
+              };
               const pairs = meta.pairs ?? [];
+              const leftItems = meta.leftItems ?? pairs.map((pair) => pair.left);
+              const rightItems = meta.rightItems ?? pairs.map((pair) => pair.right);
               const current = (selectedAnswers[activeQuestion.id] as { pairs?: { leftIndex: number; rightIndex: number }[] } | undefined)?.pairs ?? [];
               return (
                 <div className="space-y-3">
@@ -464,12 +476,12 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
                       <span>Savol</span>
                       <span>Javob</span>
                     </div>
-                    {pairs.map((pair, leftIndex) => {
+                    {leftItems.map((leftText, leftIndex) => {
                       const matched = current.find((p) => p.leftIndex === leftIndex);
                       return (
                         <div key={leftIndex} className={`grid grid-cols-2 gap-0 border-t border-zinc-100 dark:border-slate-700/60 ${matched ? "bg-emerald-50/40 dark:bg-emerald-900/10" : ""}`}>
                           <div className="flex items-center px-3 py-2.5 text-sm font-medium text-zinc-700 dark:text-slate-300 border-r border-zinc-100 dark:border-slate-700/60">
-                            {pair.left || "—"}
+                            {leftText || "—"}
                           </div>
                           <div className="px-2 py-1.5">
                             <select
@@ -490,8 +502,8 @@ export function QuizAttemptRunner({ attemptId }: { attemptId: string }) {
                               }}
                             >
                               <option value="">— Tanlang —</option>
-                              {pairs.map((p, ri) => (
-                                <option key={ri} value={ri}>{p.right || "—"}</option>
+                              {rightItems.map((rightText, ri) => (
+                                <option key={ri} value={ri}>{rightText || "—"}</option>
                               ))}
                             </select>
                           </div>

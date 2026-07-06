@@ -3,18 +3,16 @@
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/i18n/messages";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const LOCALE_COOKIE = "eduhistory-locale";
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const { setTheme, resolvedTheme } = useTheme();
+  const mounted = useHydrated();
 
   if (!mounted) {
     return (

@@ -30,7 +30,7 @@ export function InstructorRequestsTable({
   const approveMutation = useMutation({
     mutationFn: (requestId: string) =>
       fetch(`/api/admin/instructor-requests/${requestId}/approve`, { method: "POST" }),
-    onSuccess: async (_, requestId) => {
+    onSuccess: async () => {
       toast.success("Ustoz tasdiqlandi.");
       queryClient.invalidateQueries({ queryKey: ["admin-instructor-requests"] });
       router.refresh();

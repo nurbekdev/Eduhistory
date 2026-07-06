@@ -37,6 +37,7 @@ export default async function ResultPage({ params }: ResultPageProps) {
             select: {
               id: true,
               title: true,
+              instructorId: true,
             },
           },
           questions: {
@@ -64,7 +65,9 @@ export default async function ResultPage({ params }: ResultPageProps) {
   if (!attempt) return notFound();
 
   const canView =
-    attempt.userId === session.user.id || session.user.role === Role.ADMIN || session.user.role === Role.INSTRUCTOR;
+    attempt.userId === session.user.id ||
+    session.user.role === Role.ADMIN ||
+    (session.user.role === Role.INSTRUCTOR && attempt.quiz.course.instructorId === session.user.id);
   if (!canView) {
     return redirect("/403");
   }
@@ -172,7 +175,7 @@ export default async function ResultPage({ params }: ResultPageProps) {
               <iframe
                 title="Sertifikat"
                 src={`/api/certificates/${attempt.certificate.uuid}/pdf#view=FitH&toolbar=0&navpanes=0`}
-                className="aspect-[595/842] w-full border-0"
+                className="aspect-[842/595] w-full border-0"
               />
             </div>
             <div className="flex flex-wrap justify-center gap-2">

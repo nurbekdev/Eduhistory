@@ -17,6 +17,12 @@ const submitSchema = z.object({
   ),
 });
 
+const optionBasedQuestionTypes: QuestionType[] = [
+  QuestionType.MULTIPLE_CHOICE,
+  QuestionType.MULTIPLE_SELECT,
+  QuestionType.TRUE_FALSE,
+];
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -65,6 +71,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Bu urinish allaqachon yakunlangan." }, { status: 409 });
   }
 
+  const safeTimeLimitMinutes =
+    attempt.quiz.timeLimitMinutes && attempt.quiz.timeLimitMinutes > 0 ? attempt.quiz.timeLimitMinutes : 20;
+  const elapsedSeconds = Math.floor((Date.now() - new Date(attempt.startedAt).getTime()) / 1000);
+  const expiredGraceSeconds = 30;
+  if (elapsedSeconds > safeTimeLimitMinutes * 60 + expiredGraceSeconds) {
+    await prisma.quizAttempt.update({
+      where: { id: attempt.id },
+      data: {
+        status: AttemptStatus.FAILED,
+        submittedAt: new Date(),
+        durationSeconds: elapsedSeconds,
+      },
+    });
+    return NextResponse.json({ message: "Quiz vaqti tugagan. Urinish yakunlandi." }, { status: 409 });
+  }
+
   const answerMap = new Map(
     parsed.data.answers.map((a) => [
       a.questionId,
@@ -76,8 +98,7 @@ export async function POST(request: Request) {
     question: { type: QuestionType; options: { id: string; isCorrect: boolean }[]; metadata?: unknown },
     answer: unknown
   ): boolean {
-    const optionBased: QuestionType[] = [QuestionType.MULTIPLE_CHOICE, QuestionType.MULTIPLE_SELECT, QuestionType.TRUE_FALSE];
-    if (optionBased.includes(question.type)) {
+    if (optionBasedQuestionTypes.includes(question.type)) {
       const selected = Array.isArray(answer) ? (answer as string[]).sort() : [];
       const correctIds = question.options
         .filter((o) => o.isCorrect)
@@ -122,6 +143,18 @@ export async function POST(request: Request) {
   const totalQuestions = attempt.quiz.questions.length || 1;
   const scorePercent = Math.round((correctCount / totalQuestions) * 100);
   const isPassed = scorePercent >= attempt.quiz.passingScore;
+  const previousPassedAttempt = isPassed
+    ? await prisma.quizAttempt.findFirst({
+        where: {
+          quizId: attempt.quizId,
+          userId: session.user.id,
+          status: AttemptStatus.PASSED,
+          NOT: { id: attempt.id },
+        },
+        select: { id: true },
+      })
+    : null;
+  const shouldAwardCoins = isPassed && !previousPassedAttempt;
   let certificate:
     | {
         id: string;
@@ -136,15 +169,17 @@ export async function POST(request: Request) {
     });
 
     await tx.attemptAnswer.createMany({
-      data: parsed.data.answers.map((answer) => {
-        const question = attempt.quiz.questions.find((q) => q.id === answer.questionId);
-        const rawAnswer = Array.isArray(answer.selectedOptionIds)
-          ? [...answer.selectedOptionIds].sort()
-          : answer.selectedOptionIds;
-        const isCorrect = question ? isQuestionCorrect(question, rawAnswer) : false;
+      data: attempt.quiz.questions.map((question) => {
+        const submittedAnswer = answerMap.get(question.id);
+        const rawAnswer =
+          submittedAnswer ??
+          (optionBasedQuestionTypes.includes(question.type)
+            ? []
+            : {});
+        const isCorrect = isQuestionCorrect(question, rawAnswer);
         return {
           attemptId: attempt.id,
-          questionId: answer.questionId,
+          questionId: question.id,
           selectedOptionIds: rawAnswer,
           isCorrect,
         };
@@ -158,14 +193,17 @@ export async function POST(request: Request) {
         correctCount,
         wrongCount: totalQuestions - correctCount,
         submittedAt: new Date(),
+        durationSeconds: elapsedSeconds,
         status: isPassed ? AttemptStatus.PASSED : AttemptStatus.FAILED,
       },
     });
 
-    await tx.user.update({
-      where: { id: session.user.id },
-      data: { coins: { increment: correctCount } },
-    });
+    if (shouldAwardCoins) {
+      await tx.user.update({
+        where: { id: session.user.id },
+        data: { coins: { increment: correctCount } },
+      });
+    }
 
     if (attempt.quiz.lessonId && attempt.enrollmentId) {
       const lessonProgress = await tx.lessonProgress.findFirst({
@@ -182,19 +220,19 @@ export async function POST(request: Request) {
         },
         data: {
           attemptsUsed: { increment: 1 },
-          ...(isPassed && !wasAlreadyCompleted
-            ? {
-                lastAttemptScore: scorePercent,
-                status: ProgressStatus.COMPLETED,
-                completedAt: new Date(),
-              }
-            : !isPassed
+          ...(!wasAlreadyCompleted
+            ? isPassed
               ? {
+                  lastAttemptScore: scorePercent,
+                  status: ProgressStatus.COMPLETED,
+                  completedAt: new Date(),
+                }
+              : {
                   lastAttemptScore: scorePercent,
                   status: ProgressStatus.UNLOCKED,
                   completedAt: null,
                 }
-              : {}),
+            : {}),
         },
       });
 

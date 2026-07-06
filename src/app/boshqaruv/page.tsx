@@ -48,16 +48,15 @@ export default async function ManagementDashboardPage() {
           },
         });
 
-  const enrollmentCountPromise =
+  const studentCountPromise =
     session.user.role === Role.ADMIN
-      ? prisma.enrollment.count()
-      : prisma.enrollment.count({
-          where: {
-            course: {
-              instructorId: session.user.id,
-            },
-          },
-        });
+      ? prisma.user.count({ where: { role: Role.STUDENT } })
+      : prisma.$queryRaw<Array<{ count: number }>>`
+          SELECT COUNT(DISTINCT e."userId")::int AS count
+          FROM "Enrollment" e
+          JOIN "Course" c ON c.id = e."courseId"
+          WHERE c."instructorId" = ${session.user.id}
+        `.then((rows) => rows[0]?.count ?? 0);
 
   const certificateCountPromise =
     session.user.role === Role.ADMIN
@@ -70,10 +69,10 @@ export default async function ManagementDashboardPage() {
           },
         });
 
-  const [totalCourses, publishedCourses, totalEnrollments, totalCertificates] = await Promise.all([
+  const [totalCourses, publishedCourses, totalStudents, totalCertificates] = await Promise.all([
     totalCoursesPromise,
     publishedCoursesPromise,
-    enrollmentCountPromise,
+    studentCountPromise,
     certificateCountPromise,
   ]);
 
@@ -135,7 +134,7 @@ export default async function ManagementDashboardPage() {
               </div>
               <CardTitle className="text-sm text-slate-500 dark:text-slate-400">Students</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalEnrollments}</CardContent>
+            <CardContent className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalStudents}</CardContent>
           </Card>
           <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
             <CardHeader className="pb-2">

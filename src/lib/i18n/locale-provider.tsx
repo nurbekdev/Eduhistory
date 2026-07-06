@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext } from "react";
-import { getT, messages, type Locale } from "./messages";
+import { createContext, useCallback, useContext, useMemo } from "react";
+import { messages, type Locale } from "./messages";
 
 type LocaleContextValue = {
   locale: Locale;
@@ -17,9 +17,10 @@ export function LocaleProvider({
   initialLocale: Locale;
   children: React.ReactNode;
 }) {
-  const t = useCallback(getT(initialLocale), [initialLocale]);
+  const t = useCallback((key: string) => messages[initialLocale][key] ?? key, [initialLocale]);
+  const value = useMemo(() => ({ locale: initialLocale, t }), [initialLocale, t]);
   return (
-    <LocaleContext.Provider value={{ locale: initialLocale, t }}>
+    <LocaleContext.Provider value={value}>
       {children}
     </LocaleContext.Provider>
   );

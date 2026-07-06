@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Send } from "lucide-react";
 import { Role } from "@prisma/client";
 
@@ -20,10 +20,15 @@ type NotificationDropdownProps = {
   userRole: Role;
 };
 
+async function fetchNotifications(): Promise<Notification[]> {
+  const res = await fetch("/api/notifications");
+  if (!res.ok) throw new Error("Bildirishnomalarni yuklashda xatolik yuz berdi.");
+  return res.json();
+}
+
 export function NotificationDropdown({ userRole }: NotificationDropdownProps) {
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
   const [sendTitle, setSendTitle] = useState("");
   const [sendBody, setSendBody] = useState("");
@@ -31,16 +36,13 @@ export function NotificationDropdown({ userRole }: NotificationDropdownProps) {
 
   const canSend = userRole === Role.ADMIN || userRole === Role.INSTRUCTOR;
 
-  const fetchNotifications = useCallback(async () => {
-    const res = await fetch("/api/notifications");
-    if (!res.ok) return;
-    const data = (await res.json()) as Notification[];
-    setNotifications(data);
-  }, []);
-
-  useEffect(() => {
-    if (open) fetchNotifications();
-  }, [open, fetchNotifications]);
+  const notificationsQuery = useQuery({
+    queryKey: ["notifications"],
+    queryFn: fetchNotifications,
+    enabled: open,
+    staleTime: 10_000,
+  });
+  const notifications = notificationsQuery.data ?? [];
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +62,7 @@ export function NotificationDropdown({ userRole }: NotificationDropdownProps) {
       setSendTitle("");
       setSendBody("");
       setSendOpen(false);
-      fetchNotifications();
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } catch {
       alert("Xabar yuborish muvaffaqiyatsiz.");
     } finally {
@@ -133,8 +135,12 @@ export function NotificationDropdown({ userRole }: NotificationDropdownProps) {
               </form>
             )}
             <div className="max-h-[280px] overflow-y-auto">
-              {loading ? (
+              {notificationsQuery.isLoading ? (
                 <p className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Yuklanmoqda...</p>
+              ) : notificationsQuery.isError ? (
+                <p className="p-4 text-center text-sm text-red-600 dark:text-red-400">
+                  {notificationsQuery.error.message}
+                </p>
               ) : notifications.length === 0 ? (
                 <p className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Bildirishnilar yo'q.</p>
               ) : (

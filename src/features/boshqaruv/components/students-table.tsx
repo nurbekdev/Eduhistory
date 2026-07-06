@@ -38,7 +38,6 @@ type Row = {
   lastCompletedAt: string | null;
   attemptCount: number;
   quizAvgPercent: number | null;
-  attempts: AttemptRow[];
 };
 
 function downloadCsv(rows: Row[]) {
@@ -83,22 +82,53 @@ export function StudentsTable() {
   const [loading, setLoading] = useState(true);
   const [progressFilter, setProgressFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [attemptsByEnrollment, setAttemptsByEnrollment] = useState<Record<string, AttemptRow[]>>({});
+  const [loadingAttemptsId, setLoadingAttemptsId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`/api/boshqaruv/students?progress=${progressFilter}`);
-    if (!res.ok) {
-      setRows([]);
-      return;
+    setExpandedId(null);
+    try {
+      const res = await fetch(`/api/boshqaruv/students?progress=${progressFilter}`);
+      if (!res.ok) {
+        setRows([]);
+        return;
+      }
+      const data = (await res.json()) as { rows: Row[] };
+      setRows(data.rows);
+    } finally {
+      setLoading(false);
     }
-    const data = (await res.json()) as { rows: Row[] };
-    setRows(data.rows);
-    setLoading(false);
   }, [progressFilter]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const loadAttempts = async (enrollmentId: string) => {
+    if (attemptsByEnrollment[enrollmentId]) return;
+    setLoadingAttemptsId(enrollmentId);
+    try {
+      const res = await fetch(`/api/boshqaruv/students?attemptsFor=${enrollmentId}`);
+      if (!res.ok) {
+        setAttemptsByEnrollment((prev) => ({ ...prev, [enrollmentId]: [] }));
+        return;
+      }
+      const data = (await res.json()) as { attempts: AttemptRow[] };
+      setAttemptsByEnrollment((prev) => ({ ...prev, [enrollmentId]: data.attempts }));
+    } finally {
+      setLoadingAttemptsId(null);
+    }
+  };
+
+  const toggleAttempts = (row: Row) => {
+    if (expandedId === row.id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(row.id);
+    void loadAttempts(row.id);
+  };
 
   return (
     <div className="space-y-4">
@@ -179,19 +209,19 @@ export function StudentsTable() {
                           )}
                         </td>
                         <td className="py-3">
-                          {r.attempts.length > 0 && (
+                          {r.attemptCount > 0 && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
-                              onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
+                              onClick={() => toggleAttempts(r)}
                             >
                               {expandedId === r.id ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
                             </Button>
                           )}
                         </td>
                       </tr>
-                      {expandedId === r.id && r.attempts.length > 0 && (
+                      {expandedId === r.id && r.attemptCount > 0 && (
                         <tr className="bg-slate-50 dark:bg-slate-700/30">
                           <td colSpan={7} className="py-3 pr-2">
                             <div className="rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3">
@@ -199,32 +229,36 @@ export function StudentsTable() {
                                 <FileText className="size-3.5" />
                                 Attempt tarixi
                               </p>
-                              <ul className="space-y-1 text-xs">
-                                {r.attempts.map((a) => (
-                                  <li
-                                    key={a.id}
-                                    className="flex flex-wrap items-center justify-between gap-2 rounded px-2 py-1.5 text-slate-700 dark:text-slate-300"
-                                  >
-                                    <span>
-                                      {a.quizTitle}
-                                      {a.isFinal && (
-                                        <Badge variant="locked" className="ml-1 text-[10px]">
-                                          Final
-                                        </Badge>
-                                      )}
-                                    </span>
-                                    <span>
-                                      Urinish #{a.attemptNumber} — {Math.round(a.scorePercent)}%
-                                      {a.submittedAt && (
-                                        <span className="text-slate-500 dark:text-slate-400">
-                                          {" "}
-                                          {new Date(a.submittedAt).toLocaleString("uz-UZ")}
-                                        </span>
-                                      )}
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
+                              {loadingAttemptsId === r.id ? (
+                                <p className="py-3 text-xs text-slate-500 dark:text-slate-400">Attemptlar yuklanmoqda...</p>
+                              ) : (
+                                <ul className="space-y-1 text-xs">
+                                  {(attemptsByEnrollment[r.id] ?? []).map((a) => (
+                                    <li
+                                      key={a.id}
+                                      className="flex flex-wrap items-center justify-between gap-2 rounded px-2 py-1.5 text-slate-700 dark:text-slate-300"
+                                    >
+                                      <span>
+                                        {a.quizTitle}
+                                        {a.isFinal && (
+                                          <Badge variant="locked" className="ml-1 text-[10px]">
+                                            Final
+                                          </Badge>
+                                        )}
+                                      </span>
+                                      <span>
+                                        Urinish #{a.attemptNumber} — {Math.round(a.scorePercent)}%
+                                        {a.submittedAt && (
+                                          <span className="text-slate-500 dark:text-slate-400">
+                                            {" "}
+                                            {new Date(a.submittedAt).toLocaleString("uz-UZ")}
+                                          </span>
+                                        )}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                             </div>
                           </td>
                         </tr>

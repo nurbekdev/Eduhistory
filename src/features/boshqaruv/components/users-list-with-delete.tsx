@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { Role } from "@prisma/client";
 
@@ -28,28 +29,27 @@ function roleLabel(role: string) {
   return "Talaba";
 }
 
+async function fetchUsers(roleFilter: string): Promise<UserRow[]> {
+  const url = roleFilter === "all" ? "/api/admin/users" : `/api/admin/users?role=${roleFilter}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Foydalanuvchilarni yuklashda xatolik yuz berdi.");
+  }
+  return res.json();
+}
+
 export function UsersListWithDelete() {
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [roleFilter, setRoleFilter] = useState<string>("all");
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    const url = roleFilter === "all" ? "/api/admin/users" : `/api/admin/users?role=${roleFilter}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      setUsers([]);
-      setLoading(false);
-      return;
-    }
-    const data = (await res.json()) as UserRow[];
-    setUsers(data);
-    setLoading(false);
-  }, [roleFilter]);
+  const query = useQuery({
+    queryKey: ["admin-users", roleFilter],
+    queryFn: () => fetchUsers(roleFilter),
+    staleTime: 10_000,
+  });
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  const users = query.data ?? [];
 
   const deleteUser = async (userId: string, fullName: string) => {
     if (!confirm(`"${fullName}" ni rostdan ham o'chirishni xohlaysizmi? Barcha ma'lumotlari yo'qoladi.`)) return;
@@ -59,7 +59,8 @@ export function UsersListWithDelete() {
       alert(data.message ?? "Xatolik.");
       return;
     }
-    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    queryClient.setQueryData<UserRow[]>(["admin-users", roleFilter], (prev) => prev?.filter((u) => u.id !== userId) ?? []);
+    void queryClient.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
   return (
@@ -82,8 +83,10 @@ export function UsersListWithDelete() {
           <CardTitle className="text-lg text-slate-900 dark:text-slate-100">Ro'yxat</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {query.isLoading ? (
             <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">Yuklanmoqda...</p>
+          ) : query.isError ? (
+            <p className="py-8 text-center text-sm text-red-600 dark:text-red-400">{query.error.message}</p>
           ) : users.length === 0 ? (
             <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">Foydalanuvchi yo'q.</p>
           ) : (

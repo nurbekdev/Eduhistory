@@ -227,6 +227,9 @@ export function LessonQuizBuilder({
           const items = (meta?.items as { id: string; text: string; correctZoneId: string }[]) ?? [];
           if (!imageUrl.trim()) throw new Error(`Savol #${questionIndex + 1} (sürükle-rasm): rasm URL kiritilishi kerak.`);
           if (zones.filter((z) => z.id?.trim()).length < 1) throw new Error(`Savol #${questionIndex + 1} (sürükle-rasm): kamida bitta zona bo'lishi kerak.`);
+          const zoneIds = new Set(zones.map((zone) => zone.id).filter(Boolean));
+          const validItems = items.filter((item) => item.text?.trim() && zoneIds.has(item.correctZoneId));
+          if (validItems.length < 1) throw new Error(`Savol #${questionIndex + 1} (sürükle-rasm): kamida bitta zona bilan bog'langan variant bo'lishi kerak.`);
           if (text.length < 5) text = "Rasmdagi zonalarga variantlarni torting.";
         } else if (question.type === "DRAG_DROP_TEXT") {
           const textWithBlanks = (meta?.textWithBlanks as string) ?? "";

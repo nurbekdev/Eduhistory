@@ -51,7 +51,7 @@ export function LoginForm() {
     const nextPath =
       typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null;
     if (nextPath?.startsWith("/")) {
-      window.location.href = nextPath;
+      window.location.assign(nextPath);
       return;
     }
 
@@ -59,7 +59,7 @@ export function LoginForm() {
     await new Promise((r) => setTimeout(r, 100));
     const session = await getSession();
     const path = getDefaultRouteByRole(session?.user?.role) ?? "/dashboard";
-    window.location.href = path;
+    window.location.assign(path);
   });
 
   return (

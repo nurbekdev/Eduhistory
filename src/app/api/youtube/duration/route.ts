@@ -37,7 +37,6 @@ export async function GET(request: Request) {
       `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(videoId)}&key=${apiKey}`,
     );
     if (!res.ok) {
-      const body = await res.text();
       return NextResponse.json({
         durationMinutes: null,
         error: `YouTube API xatosi: ${res.status}`,

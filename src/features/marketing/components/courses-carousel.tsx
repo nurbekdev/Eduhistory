@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BookCheck, ChevronLeft, ChevronRight, Clock3, Layers3 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -20,15 +19,6 @@ type CourseItem = {
   lessonsCount: number;
   image: string;
 };
-
-function getCourseImage(category: string, coverImageUrl?: string | null) {
-  if (coverImageUrl?.startsWith("http") || coverImageUrl?.startsWith("/")) return coverImageUrl;
-  const lower = category.toLowerCase();
-  if (lower.includes("robot")) return "/images/robotics.jpg";
-  if (lower.includes("it")) return "/images/it.jpg";
-  if (lower.includes("3d")) return "/images/3d.jpg";
-  return "/images/it.jpg";
-}
 
 function useCardsPerPage() {
   const [n, setN] = useState(1);
@@ -49,14 +39,14 @@ export function CoursesCarousel({ courses }: { courses: CourseItem[] }) {
   const totalPages = Math.max(1, Math.ceil(courses.length / cardsPerPage));
   const [pageIndex, setPageIndex] = useState(0);
 
-  const goNext = () => setPageIndex((i) => (i + 1) % totalPages);
-  const goPrev = () => setPageIndex((i) => (i - 1 + totalPages) % totalPages);
+  const goNext = useCallback(() => setPageIndex((i) => (i + 1) % totalPages), [totalPages]);
+  const goPrev = useCallback(() => setPageIndex((i) => (i - 1 + totalPages) % totalPages), [totalPages]);
 
   useEffect(() => {
     if (totalPages <= 1) return;
     const t = setInterval(goNext, 5000);
     return () => clearInterval(t);
-  }, [totalPages]);
+  }, [goNext, totalPages]);
 
   if (courses.length === 0) {
     return (

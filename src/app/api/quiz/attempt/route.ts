@@ -55,6 +55,9 @@ export async function POST(request: Request) {
     if (!enrollment || enrollment.userId !== session.user.id) {
       return NextResponse.json({ message: "Enrollment topilmadi." }, { status: 404 });
     }
+    if (enrollment.courseId !== quiz.courseId) {
+      return NextResponse.json({ message: "Bu enrollment ushbu kurs testiga tegishli emas." }, { status: 403 });
+    }
 
     if (quiz.lessonId) {
       const lessonProgress = enrollment.progress.find((item) => item.lessonId === quiz.lessonId);

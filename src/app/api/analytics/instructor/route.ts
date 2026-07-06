@@ -129,7 +129,7 @@ export async function GET(request: Request) {
       where: { courseId: selectedCourseId },
       include: {
         user: { select: { id: true, fullName: true, email: true } },
-        progress: true,
+        progress: { select: { lessonId: true, status: true } },
         attempts: {
           where: {
             quiz: {
@@ -169,6 +169,9 @@ export async function GET(request: Request) {
       ]),
     ),
   );
+  const orderedLessonIds = selectedCourse.modules.flatMap((moduleItem) =>
+    moduleItem.lessons.map((lesson) => lesson.id),
+  );
 
   const lessonStats = new Map<
     string,
@@ -200,15 +203,16 @@ export async function GET(request: Request) {
     .sort((a, b) => a.order - b.order);
 
   const studentsTable = students.map((enrollment) => {
-    const totalLessons = enrollment.progress.length;
-    const completedLessons = enrollment.progress.filter((item) => item.status === "COMPLETED").length;
+    const progressByLesson = new Map(enrollment.progress.map((item) => [item.lessonId, item.status]));
+    const totalLessons = orderedLessonIds.length;
+    const completedLessons = orderedLessonIds.filter((lessonId) => progressByLesson.get(lessonId) === "COMPLETED").length;
     const progressPercent = totalLessons ? toPercent((completedLessons / totalLessons) * 100) : 0;
     const avgScore = enrollment.attempts.length
       ? toPercent(enrollment.attempts.reduce((acc, item) => acc + item.scorePercent, 0) / enrollment.attempts.length)
       : 0;
 
-    const latestActive = enrollment.progress.find((item) => item.status !== "COMPLETED");
-    const currentLessonTitle = latestActive ? lessonMap.get(latestActive.lessonId)?.title ?? "Aniqlanmadi" : "Kurs yakunlangan";
+    const latestActiveLessonId = orderedLessonIds.find((lessonId) => progressByLesson.get(lessonId) !== "COMPLETED");
+    const currentLessonTitle = latestActiveLessonId ? lessonMap.get(latestActiveLessonId)?.title ?? "Aniqlanmadi" : "Kurs yakunlangan";
 
     return {
       userId: enrollment.user.id,
@@ -309,7 +313,7 @@ export async function GET(request: Request) {
     if (selectedMetric.averageQuizScore > 0 && selectedMetric.averageQuizScore < 70) {
       insights.push(`Quiz o'rtacha balli ${selectedMetric.averageQuizScore}%. Savol qiyinligi yoki tushuntirishlarni oshirish mumkin.`);
     }
-    const worstDrop = lessonDropOff.sort((a, b) => b.dropOffRate - a.dropOffRate)[0];
+    const worstDrop = [...lessonDropOff].sort((a, b) => b.dropOffRate - a.dropOffRate)[0];
     if (worstDrop && worstDrop.dropOffRate > 30) {
       insights.push(`"${worstDrop.lessonTitle}" darsida tushish eng yuqori (${worstDrop.dropOffRate}%). Kontent yoki davomiylikni tekshiring.`);
     }

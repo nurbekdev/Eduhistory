@@ -16,24 +16,30 @@ export async function GET() {
     },
     include: {
       course: {
-        include: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          description: true,
+          category: true,
+          level: true,
           instructor: {
             select: { fullName: true },
           },
           modules: {
-            include: {
-              lessons: true,
+            select: {
+              _count: { select: { lessons: true } },
             },
           },
         },
       },
-      progress: true,
+      progress: { select: { status: true } },
     },
     orderBy: { enrolledAt: "desc" },
   });
 
   const data = enrollments.map((enrollment) => {
-    const totalLessons = enrollment.course.modules.reduce((acc, moduleItem) => acc + moduleItem.lessons.length, 0);
+    const totalLessons = enrollment.course.modules.reduce((acc, moduleItem) => acc + moduleItem._count.lessons, 0);
     const completed = enrollment.progress.filter((item) => item.status === "COMPLETED").length;
     const percent = totalLessons === 0 ? 0 : Math.round((completed / totalLessons) * 100);
     return {

@@ -262,6 +262,7 @@ model Enrollment {
 
   @@unique([userId, courseId])
   @@index([courseId])
+  @@index([status])
 }
 
 model LessonProgress {
@@ -282,6 +283,8 @@ model LessonProgress {
 
   @@unique([enrollmentId, lessonId])
   @@index([userId, lessonId])
+  @@index([enrollmentId, status])
+  @@index([status, completedAt])
 }
 
 model Quiz {
@@ -358,6 +361,9 @@ model QuizAttempt {
 
   @@index([quizId, userId])
   @@index([userId, createdAt])
+  @@index([quizId, status])
+  @@index([enrollmentId, status])
+  @@index([userId, quizId, status])
 }
 
 model AttemptAnswer {
@@ -392,6 +398,8 @@ model Certificate {
   quizAttempt        QuizAttempt?  @relation(fields: [quizAttemptId], references: [id], onDelete: SetNull)
 
   @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([issuedAt])
 }
 
 model CertificateSettings {

@@ -28,8 +28,6 @@ export function ProfileEdit({
   fullName: initialFullName,
   role,
   instructorProfile,
-  githubUrl: _githubUrl,
-  linkedinUrl: _linkedinUrl,
 }: ProfileEditProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -102,7 +100,7 @@ export function ProfileEdit({
       setNewPassword("");
       setConfirmPassword("");
       router.refresh();
-    } catch (err) {
+    } catch {
       setPasswordMessage({ type: "err", text: "Xatolik yuz berdi." });
     } finally {
       setSavingPassword(false);

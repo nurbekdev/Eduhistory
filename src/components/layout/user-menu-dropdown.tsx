@@ -38,7 +38,7 @@ type UserMenuDropdownProps = {
 
 export function UserMenuDropdown({ imageUrl, role, labels, locale }: UserMenuDropdownProps) {
   const [open, setOpen] = useState(false);
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
 

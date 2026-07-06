@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { AttemptStatus, Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
@@ -24,6 +24,36 @@ function seededShuffle<T>(arr: T[], seed: string): T[] {
   return result;
 }
 
+function sanitizedQuestionMetadata(type: string, metadata: unknown, seed: string): unknown {
+  if (!metadata || typeof metadata !== "object") return undefined;
+
+  if (type === "MATCHING") {
+    const pairs = ((metadata as { pairs?: { left: string; right: string }[] }).pairs ?? [])
+      .map((pair) => ({
+        left: String(pair.left ?? ""),
+        right: String(pair.right ?? ""),
+      }))
+      .filter((pair) => pair.left || pair.right);
+
+    return {
+      leftItems: pairs.map((pair) => pair.left),
+      rightItems: seededShuffle(pairs.map((pair) => pair.right), `${seed}:matching-right`),
+    };
+  }
+
+  if (type === "CLOZE") {
+    const parts = ((metadata as { parts?: { type: string; value: string }[] }).parts ?? []).map((part) => ({
+      type: part.type,
+      value: part.type === "blank" ? "" : String(part.value ?? ""),
+    }));
+    return { parts };
+  }
+
+  if (type === "NUMERICAL") return undefined;
+
+  return metadata;
+}
+
 type RouteContext = {
   params: Promise<{ attemptId: string }>;
 };
@@ -44,6 +74,7 @@ export async function GET(_request: Request, context: RouteContext) {
             select: {
               id: true,
               title: true,
+              instructorId: true,
             },
           },
           questions: {
@@ -64,7 +95,9 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const canView =
-    attempt.userId === session.user.id || session.user.role === Role.ADMIN || session.user.role === Role.INSTRUCTOR;
+    attempt.userId === session.user.id ||
+    session.user.role === Role.ADMIN ||
+    (session.user.role === Role.INSTRUCTOR && attempt.quiz.course.instructorId === session.user.id);
   if (!canView) {
     return NextResponse.json({ message: "Bu urinishni ko'rishga ruxsat yo'q." }, { status: 403 });
   }
@@ -94,13 +127,19 @@ export async function GET(_request: Request, context: RouteContext) {
       passingScore: attempt.quiz.passingScore,
       attemptLimit: attempt.quiz.attemptLimit,
       timeLimitMinutes: safeTimeLimitMinutes,
-      course: attempt.quiz.course,
+      course: {
+        id: attempt.quiz.course.id,
+        title: attempt.quiz.course.title,
+      },
       questions: seededShuffle(attempt.quiz.questions, attempt.id).map((question, qi) => ({
         id: question.id,
         text: question.text,
-        explanation: question.explanation,
+        explanation: attempt.status === AttemptStatus.IN_PROGRESS ? null : question.explanation,
         type: question.type,
-        metadata: question.metadata ?? undefined,
+        metadata:
+          attempt.status === AttemptStatus.IN_PROGRESS
+            ? sanitizedQuestionMetadata(question.type, question.metadata, `${attempt.id}-${qi}`)
+            : question.metadata ?? undefined,
         options: seededShuffle(question.options, `${attempt.id}-${qi}`).map((option) => ({
           id: option.id,
           text: option.text,

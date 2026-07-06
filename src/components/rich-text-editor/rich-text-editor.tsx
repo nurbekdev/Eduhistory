@@ -32,9 +32,8 @@ type RichTextEditorProps = {
 };
 
 function Toolbar({ editor, onImageClick }: { editor: Editor | null; onImageClick: () => void }) {
-  if (!editor) return null;
-
   const setLink = useCallback(() => {
+    if (!editor) return;
     const previousUrl = editor.getAttributes("link").href;
     const url = window.prompt("Havola URL:", previousUrl ?? "https://");
     if (url === null) return;
@@ -44,6 +43,8 @@ function Toolbar({ editor, onImageClick }: { editor: Editor | null; onImageClick
     }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
+
+  if (!editor) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-0.5 rounded-t-lg border border-b-0 border-slate-200 bg-slate-50 p-1 dark:border-slate-600 dark:bg-slate-800/50">

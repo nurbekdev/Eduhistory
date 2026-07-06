@@ -34,16 +34,7 @@ export async function GET(_request: Request, context: RouteContext) {
                 include: {
                   materials: true,
                   quiz: {
-                    include: {
-                      questions: {
-                        include: {
-                          options: {
-                            orderBy: { order: "asc" },
-                          },
-                        },
-                        orderBy: { order: "asc" },
-                      },
-                    },
+                    include: { _count: { select: { questions: true } } },
                   },
                 },
                 orderBy: { order: "asc" },
@@ -53,16 +44,7 @@ export async function GET(_request: Request, context: RouteContext) {
           },
           quizzes: {
             where: { isFinal: true },
-            include: {
-              questions: {
-                include: {
-                  options: {
-                    orderBy: { order: "asc" },
-                  },
-                },
-                orderBy: { order: "asc" },
-              },
-            },
+            include: { _count: { select: { questions: true } } },
           },
         },
       },
@@ -115,16 +97,7 @@ export async function GET(_request: Request, context: RouteContext) {
               description: lesson.quiz.description,
               passingScore: lesson.quiz.passingScore,
               attemptLimit: lesson.quiz.attemptLimit,
-                questions: (lesson.quiz.questions ?? []).map((question) => ({
-                  id: question.id,
-                  text: question.text,
-                  explanation: question.explanation,
-                  type: question.type,
-                  options: (question.options ?? []).map((option) => ({
-                    id: option.id,
-                    text: option.text,
-                  })),
-                })),
+              questionCount: lesson.quiz._count.questions,
             }
           : null,
       };
@@ -196,16 +169,7 @@ export async function GET(_request: Request, context: RouteContext) {
             passingScore: finalQuiz.passingScore,
             attemptLimit: finalQuiz.attemptLimit,
             attemptsUsed: finalAttemptsUsed,
-            questions: (finalQuiz.questions ?? []).map((question) => ({
-              id: question.id,
-              text: question.text,
-              explanation: question.explanation,
-              type: question.type,
-              options: (question.options ?? []).map((option) => ({
-                id: option.id,
-                text: option.text,
-              })),
-            })),
+            questionCount: finalQuiz._count.questions,
             canStart: canStartFinalQuiz,
           }
         : null,

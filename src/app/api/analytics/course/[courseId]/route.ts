@@ -27,31 +27,30 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Bu kurs analitikasiga ruxsat yo'q." }, { status: 403 });
   }
 
-  const [enrolledCount, completionCount, quizAttempts, finalAttempts] = await Promise.all([
+  const [enrolledCount, completionCount, quizScoreAgg, finalAttemptStatusCounts] = await Promise.all([
     prisma.enrollment.count({ where: { courseId } }),
     prisma.enrollment.count({ where: { courseId, status: EnrollmentStatus.COMPLETED } }),
-    prisma.quizAttempt.findMany({
+    prisma.quizAttempt.aggregate({
       where: { quiz: { courseId } },
-      select: { scorePercent: true },
+      _avg: { scorePercent: true },
     }),
-    prisma.quizAttempt.findMany({
+    prisma.quizAttempt.groupBy({
+      by: ["status"],
       where: { quiz: { courseId, isFinal: true } },
-      select: { status: true },
+      _count: { _all: true },
     }),
   ]);
 
-  const avgScore = quizAttempts.length
-    ? quizAttempts.reduce((sum, item) => sum + item.scorePercent, 0) / quizAttempts.length
-    : 0;
-
-  const finalPassRate = finalAttempts.length
-    ? (finalAttempts.filter((a) => a.status === AttemptStatus.PASSED).length / finalAttempts.length) * 100
+  const finalAttemptTotal = finalAttemptStatusCounts.reduce((sum, item) => sum + item._count._all, 0);
+  const finalPassed = finalAttemptStatusCounts.find((item) => item.status === AttemptStatus.PASSED)?._count._all ?? 0;
+  const finalPassRate = finalAttemptTotal
+    ? (finalPassed / finalAttemptTotal) * 100
     : 0;
 
   return NextResponse.json({
     enrolledCount,
     completionRate: enrolledCount ? (completionCount / enrolledCount) * 100 : 0,
-    averageQuizScore: Number(avgScore.toFixed(2)),
+    averageQuizScore: Number((quizScoreAgg._avg.scorePercent ?? 0).toFixed(2)),
     finalPassRate: Number(finalPassRate.toFixed(2)),
   });
 }

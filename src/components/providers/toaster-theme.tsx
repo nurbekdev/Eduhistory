@@ -2,12 +2,12 @@
 
 import { useTheme } from "next-themes";
 import { Toaster } from "sonner";
-import { useEffect, useState } from "react";
+
+import { useHydrated } from "@/lib/use-hydrated";
 
 export function ToasterWithTheme() {
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   return (
     <Toaster
       richColors

@@ -8,7 +8,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageContainer } from "@/components/layout/page-container";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CourseReviewsSection } from "@/features/courses/components/course-reviews-section";
 import { EnrollButton } from "@/features/courses/components/enroll-button";

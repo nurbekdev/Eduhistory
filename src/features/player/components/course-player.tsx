@@ -12,26 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 
-type Option = {
-  id: string;
-  text: string;
-};
-
-type Question = {
-  id: string;
-  text: string;
-  explanation: string | null;
-  type: "MULTIPLE_CHOICE" | "MULTIPLE_SELECT";
-  options: Option[];
-};
-
 type Quiz = {
   id: string;
   title: string;
   description: string | null;
   passingScore: number;
   attemptLimit: number;
-  questions: Question[];
+  questionCount: number;
 };
 
 type Lesson = {
@@ -107,8 +94,8 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
   const query = useQuery({
     queryKey: ["course-player", courseId],
     queryFn: () => fetchCoursePlayer(courseId),
-    staleTime: 0,
-    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
 
@@ -353,7 +340,7 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
                 <CardTitle style={{ color: "var(--text-primary)" }}>Quiz</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {!activeLesson.quiz || (activeLesson.quiz.questions?.length ?? 0) === 0 ? (
+                {!activeLesson.quiz || activeLesson.quiz.questionCount === 0 ? (
                   <p className="text-sm" style={{ color: "var(--text-muted)" }}>Bu dars uchun test mavjud emas.</p>
                 ) : (
                   <>
@@ -407,7 +394,7 @@ export function CoursePlayer({ courseId }: { courseId: string }) {
               <CardTitle style={{ color: "var(--text-primary)" }}>Kurs yakuniy testi</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!finalQuiz || (finalQuiz.questions?.length ?? 0) === 0 ? (
+              {!finalQuiz || finalQuiz.questionCount === 0 ? (
                 <>
                   <p className="text-sm" style={{ color: "var(--text-muted)" }}>Bu kurs uchun yakuniy test hali sozlanmagan.</p>
                   {certificate ? (
