@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, FileCheck, Home, Share2, UserPlus } from "lucide-react";
+import { BookOpen, FileCheck, Home, ShieldCheck, Share2, UserPlus } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
 
@@ -46,6 +46,15 @@ export function Footer() {
                 >
                   <UserPlus className="size-4" />
                   Ro&apos;yxatdan o&apos;tish
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/privacy"
+                  className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+                >
+                  <ShieldCheck className="size-4" />
+                  Maxfiylik siyosati
                 </Link>
               </li>
             </ul>
